@@ -100,6 +100,8 @@
   .chip.on .box svg{width:13px;height:13px}
   .chip .freq{margin-left:auto;font-size:11px;font-weight:700;color:var(--ink2);background:#D7E5DA;padding:2px 8px;border-radius:20px;flex:none}
   .chip.on .freq{background:#fff;color:var(--clay)}
+  .outras-btn{width:100%;border:1.5px dashed var(--line);background:none;border-radius:13px;padding:11px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink2);display:flex;align-items:center;justify-content:center;gap:7px}
+  .outras-btn .outras-n{font-size:11px;font-weight:700;background:#D7E5DA;color:var(--ink2);border-radius:20px;padding:2px 8px}
   .panel{padding:2px 14px 14px;border-top:1px dashed var(--clay-line)}
   .panel-h{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--clay-d);margin:11px 0 9px}
   .cgrid{display:flex;flex-wrap:wrap;gap:7px}
@@ -257,6 +259,9 @@ const PICKS=[
   { id:"medreduz",label:"Indicação médica", base:f=>"Conduta por indicação médica" },
   { id:"oper",label:"Operacional", base:f=>"Intercorrência operacional" },
 ];
+const COMMON_IDS=["acesso","hipo","coag","glic"];
+const COMMON=COMMON_IDS.map(id=>PICKS.find(p=>p.id===id));
+const OUTRAS=PICKS.filter(p=>!COMMON_IDS.includes(p.id));
 
 function App(){
   const [rx]=useState(()=>readRx()||DEMO);
@@ -270,6 +275,7 @@ function App(){
   const [cond,setCond]=useState({});
   const [fields,setFields]=useState({});
   const [free,setFree]=useState("");
+  const [showOutras,setShowOutras]=useState(false);
   const [tec,setTec]=useState("");
   const [showDemo,setShowDemo]=useState(!!rx.demo);
   const [toast,setToast]=useState("");
@@ -369,9 +375,44 @@ function App(){
     setToast("Relatório copiado");setTimeout(()=>setToast(""),1700);
   }
 
+  const chipEl=p=>{
+    const on=!!active[p.id];
+    return (
+      <div key={p.id} className={"chip"+(on?" on":"")}>
+        <button className="chip-btn" onClick={()=>togglePick(p.id)}><span className="box">{on&&<Check/>}</span>{p.label}</button>
+        {on && (p.condutas || p.eventFields) &&
+          <div className="panel">
+            {p.eventFields&&p.eventFields.length>0 &&
+              <div className="cfields">
+                {p.eventFields.map(fl=>(
+                  <span className="fld" key={fl.k}><span className="lbl">{fl.lbl}</span>
+                    <input inputMode="decimal" value={(fields[p.id]||{})[fl.k]||""} onChange={e=>setField(p.id,fl.k,e.target.value)} />
+                    {fl.u&&<span className="u">{fl.u}</span>}</span>
+                ))}
+              </div>}
+            {p.condutas && <>
+            <div className="panel-h">Conduta</div>
+            <div className="cgrid">
+              {p.condutas.map(c=>{ const con=!!(cond[p.id]||{})[c.id];
+                return <button key={c.id} className={"cpill"+(con?" on":"")} onClick={()=>toggleCond(p.id,c.id)}><span className="p">{con&&<Check/>}</span>{c.label}</button>; })}
+            </div>
+            {p.condutas.some(c=>(cond[p.id]||{})[c.id]&&c.fields) &&
+              <div className="cfields">
+                {p.condutas.filter(c=>(cond[p.id]||{})[c.id]&&c.fields).map(c=> c.fields.map(fl=>(
+                  <span className="fld" key={c.id+fl.k}><span className="lbl">{fl.lbl}</span>
+                    <input className={fl.wide?"wide":""} inputMode={fl.wide?"text":"decimal"} value={(fields[p.id]||{})[fl.k]||""} onChange={e=>setField(p.id,fl.k,e.target.value)} />
+                    {fl.u&&<span className="u">{fl.u}</span>}</span>
+                )))}
+              </div>}
+            </>}
+          </div>}
+      </div>
+    );
+  };
+
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.0</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.1</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
@@ -436,40 +477,9 @@ function App(){
         <div className="motnote">Sessão {cancelled?"cancelada":"reduzida"}: selecione o motivo na lista abaixo.</div>}
       <div className="orline">{(reduced||cancelled)?"motivo da sessão / intercorrências":"ou registre o que houve"}</div>
         <div className="chips">
-          {PICKS.map(p=>{
-            const on=!!active[p.id];
-            return (
-              <div key={p.id} className={"chip"+(on?" on":"")}>
-                <button className="chip-btn" onClick={()=>togglePick(p.id)}><span className="box">{on&&<Check/>}</span>{p.label}</button>
-                {on && (p.condutas || p.eventFields) &&
-                  <div className="panel">
-                    {p.eventFields&&p.eventFields.length>0 &&
-                      <div className="cfields">
-                        {p.eventFields.map(fl=>(
-                          <span className="fld" key={fl.k}><span className="lbl">{fl.lbl}</span>
-                            <input inputMode="decimal" value={(fields[p.id]||{})[fl.k]||""} onChange={e=>setField(p.id,fl.k,e.target.value)} />
-                            {fl.u&&<span className="u">{fl.u}</span>}</span>
-                        ))}
-                      </div>}
-                    {p.condutas && <>
-                    <div className="panel-h">Conduta</div>
-                    <div className="cgrid">
-                      {p.condutas.map(c=>{ const con=!!(cond[p.id]||{})[c.id];
-                        return <button key={c.id} className={"cpill"+(con?" on":"")} onClick={()=>toggleCond(p.id,c.id)}><span className="p">{con&&<Check/>}</span>{c.label}</button>; })}
-                    </div>
-                    {p.condutas.some(c=>(cond[p.id]||{})[c.id]&&c.fields) &&
-                      <div className="cfields">
-                        {p.condutas.filter(c=>(cond[p.id]||{})[c.id]&&c.fields).map(c=> c.fields.map(fl=>(
-                          <span className="fld" key={c.id+fl.k}><span className="lbl">{fl.lbl}</span>
-                            <input className={fl.wide?"wide":""} inputMode={fl.wide?"text":"decimal"} value={(fields[p.id]||{})[fl.k]||""} onChange={e=>setField(p.id,fl.k,e.target.value)} />
-                            {fl.u&&<span className="u">{fl.u}</span>}</span>
-                        )))}
-                      </div>}
-                    </>}
-                  </div>}
-              </div>
-            );
-          })}
+          {COMMON.map(chipEl)}
+          {!(reduced||cancelled) && <button type="button" className="outras-btn" onClick={()=>setShowOutras(v=>!v)}>{showOutras?"− menos opções":"+ outras"}<span className="outras-n">{OUTRAS.length}</span></button>}
+          {(showOutras||reduced||cancelled) && OUTRAS.map(chipEl)}
         </div>
       <div className="free"><textarea placeholder="Outra observação (opcional)…" value={free} onChange={e=>setFree(e.target.value)} /></div>
 
