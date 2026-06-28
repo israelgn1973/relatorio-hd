@@ -6,14 +6,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="theme-color" content="#0E6E68" />
-<title>Relatório HD · protótipo v0.5</title>
+<title>Relatório HD · protótipo v0.8</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <style>
   :root{
-    --bg:#EEF2F3;--ink:#16282C;--ink2:#5C6E73;--line:#D8E0E2;
-    --lock-bg:#E3E9EA;--lock-ink:#43565B;
+    --bg:#DBE8DD;--ink:#16282C;--ink2:#54675E;--line:#CBD9CE;
+    --lock-bg:#D3E1D6;--lock-ink:#41564A;
     --teal:#0E6E68;--teal-d:#0A5651;
     --clay:#B5541C;--clay-d:#8F3F12;--clay-tint:#F8E9DD;--clay-line:#E7C3A4;
     --red:#B3261E;--red-d:#8E1B15;--red-tint:#FBE9E7;--red-line:#F0C2BC;
@@ -56,13 +56,14 @@
   .srow{padding-bottom:13px;margin-bottom:13px;border-bottom:1px dashed var(--line)}
   .srow:last-child{border-bottom:0;margin-bottom:0}
   .srow-h{font-size:13px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px;margin-bottom:9px}
-  .ptag{font-size:11.5px;font-weight:700;color:var(--ink2);background:#EEF2F3;border-radius:20px;padding:2px 9px}
+  .ptag{font-size:11.5px;font-weight:700;color:var(--ink2);background:#D7E5DA;border-radius:20px;padding:2px 9px}
   .bands{display:flex;flex-wrap:wrap;gap:6px}
   .band{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 11px;
     font-size:13px;font-weight:700;cursor:pointer;transition:.1s}
   .band.ok.on{background:var(--teal);color:#fff;border-color:var(--teal)}
   .band.warn.on{background:var(--clay);color:#fff;border-color:var(--clay)}
   .band.bad.on{background:var(--red);color:#fff;border-color:var(--red)}
+  .band.neu.on{background:#3F564A;color:#fff;border-color:#3F564A}
   .band.bad{color:var(--red-d);border-color:var(--red-line)}
   .ufline{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
   .ufbox{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:7px 11px}
@@ -87,6 +88,7 @@
   .clean.on .chk{background:#fff}
   .clean.on .chk svg{opacity:1}
   .orline{display:flex;align-items:center;gap:10px;color:var(--ink2);font-size:12px;font-weight:600;margin:16px 2px 11px}
+  .motnote{background:var(--clay-tint);border:1px solid var(--clay-line);color:var(--clay-d);font-size:13px;font-weight:600;border-radius:11px;padding:11px 13px;margin-top:4px;line-height:1.35}
   .orline:before,.orline:after{content:"";flex:1;height:1px;background:var(--line)}
 
   .chips{display:flex;flex-direction:column;gap:9px}
@@ -96,7 +98,7 @@
   .chip .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center}
   .chip.on .box{background:var(--clay);border-color:var(--clay)}
   .chip.on .box svg{width:13px;height:13px}
-  .chip .freq{margin-left:auto;font-size:11px;font-weight:700;color:var(--ink2);background:#EEF2F3;padding:2px 8px;border-radius:20px;flex:none}
+  .chip .freq{margin-left:auto;font-size:11px;font-weight:700;color:var(--ink2);background:#D7E5DA;padding:2px 8px;border-radius:20px;flex:none}
   .chip.on .freq{background:#fff;color:var(--clay)}
   .panel{padding:2px 14px 14px;border-top:1px dashed var(--clay-line)}
   .panel-h{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--clay-d);margin:11px 0 9px}
@@ -173,17 +175,37 @@ function visibleTimes(rx){ const pm=prescMin(rx); return ALLTIMES.filter(t=>t.mi
 function completaId(rx){ const v=visibleTimes(rx); return v.length?v[v.length-1].id:"t240"; }
 function timeLabel(id){ const t=ALLTIMES.find(x=>x.id===id); return t?t.label:""; }
 const MOTIVOS=[
-  {id:"maquina",label:"Defeito na máquina",t:"defeito na máquina"},
-  {id:"log",label:"Logística / transporte",t:"logística/transporte"},
-  {id:"remaneja",label:"Paciente mais grave (remanejamento)",t:"remanejamento para paciente mais grave"},
   {id:"instab",label:"Instabilidade hemodinâmica",t:"instabilidade hemodinâmica"},
-  {id:"medico",label:"Indicação do médico/plantonista",t:"indicação do médico plantonista"},
-  {id:"coag",label:"Coagulação do sistema",t:"coagulação do sistema"},
-  {id:"cdl",label:"Mau funcionamento do CDL",t:"mau funcionamento do CDL"},
+  {id:"pcr",label:"PCR",t:"PCR"},
+  {id:"coag",label:"Coagulação do circuito",t:"coagulação do circuito"},
+  {id:"acesso",label:"Disfunção de acesso",t:"disfunção de acesso"},
+  {id:"medico",label:"Indicação médica",t:"indicação médica"},
   {id:"obito",label:"Óbito",t:"óbito do paciente"},
+  {id:"oper",label:"Operacional",t:"motivo operacional"},
+];
+const STATUS=[
+  {id:"grav",label:"Gravidade",opts:[
+    {id:"estavel",label:"Estável",t:"estável"},
+    {id:"grave",label:"Estável grave",t:"estável grave"},
+    {id:"gravissimo",label:"Gravíssimo",t:"gravíssimo"},
+  ]},
+  {id:"resp",label:"Respiratório",opts:[
+    {id:"aa",label:"Eupneico em AA",t:"eupneico em ar ambiente"},
+    {id:"o2",label:"Eupneico com O₂",t:"eupneico com O₂"},
+    {id:"dispneico",label:"Dispneico",t:"dispneico"},
+    {id:"vni",label:"VNI / alto fluxo",t:"em VNI/cateter de alto fluxo"},
+    {id:"vm",label:"Sob VM",t:"sob ventilação mecânica"},
+  ]},
+  {id:"hemo",label:"Hemodinâmica",opts:[
+    {id:"hipertenso",label:"Hipertenso",t:"hipertenso"},
+    {id:"normo",label:"Normotenso sem DVA",t:"normotenso sem DVA"},
+    {id:"normodva",label:"Normotenso com DVA",t:"normotenso com DVA"},
+    {id:"hipoten",label:"Hipotenso sem DVA",t:"hipotenso sem DVA"},
+    {id:"hipotendva",label:"Hipotenso com DVA",t:"hipotenso com DVA"},
+  ]},
 ];
 const PICKS=[
-  { id:"hipo",label:"Hipotensão",freq:"38%", base:f=>"Paciente apresentou hipotensão durante a sessão",
+  { id:"hipo",label:"Hipotensão", base:f=>"Paciente apresentou hipotensão durante a sessão",
     condutas:[
       {id:"noraup",label:"Aumento de Nora",fields:[{k:"de",lbl:"de"},{k:"ate",lbl:"até",u:"ml/h"}],
         frag:f=>{const a=(f.de||"").trim(),b=(f.ate||"").trim();let s="realizado aumento de Noradrenalina";if(a&&b)s+=` de ${a} até ${b} ml/h`;else if(b)s+=` para ${b} ml/h`;return s;}},
@@ -194,10 +216,19 @@ const PICKS=[
       {id:"trend",label:"Trendelemburg",frag:f=>"posicionado em Trendelemburg"},
       {id:"presc",label:"Conforme prescrição",frag:f=>"conforme prescrição médica"},
     ]},
-  { id:"glic",label:"Hipoglicemia",freq:"16%",eventFields:[{k:"hgt",lbl:"HGT",u:"mg/dL"}],
+  { id:"instab",label:"Instabilidade hemodinâmica grave", base:f=>"Apresentou instabilidade hemodinâmica grave" },
+  { id:"hiper",label:"Hipertensão / crise hipertensiva", base:f=>"Paciente apresentou crise hipertensiva",
+    condutas:[{id:"presc",label:"Conforme prescrição",frag:f=>"conduta conforme prescrição médica"},{id:"plant",label:"Medicação a pedido do plantonista",frag:f=>"medicação a pedido do plantonista"}]},
+  { id:"glic",label:"Hipoglicemia",eventFields:[{k:"hgt",lbl:"HGT",u:"mg/dL"}],
     base:f=>"Apresentou hipoglicemia"+((f.hgt||"").trim()?` (HGT ${f.hgt.trim()})`:""),
     condutas:[{id:"presc",label:"Corrigida conforme prescrição",frag:f=>"corrigida conforme prescrição médica"},{id:"glic",label:"Glicose EV",frag:f=>"administrada glicose EV"}]},
-  { id:"coag",label:"Coagulação do sistema",freq:"5%",base:f=>"Sistema apresentou coagulação",
+  { id:"arritmia",label:"Arritmia", base:f=>"Apresentou arritmia" },
+  { id:"dor",label:"Dor torácica / precordial", base:f=>"Apresentou dor torácica/precordial" },
+  { id:"convulsao",label:"Convulsão", base:f=>"Apresentou convulsão" },
+  { id:"rebaix",label:"Rebaixamento", base:f=>"Apresentou rebaixamento do nível de consciência" },
+  { id:"pcr",label:"PCR", base:f=>"Apresentou PCR" },
+  { id:"intub",label:"Necessidade de intubação durante a HD", base:f=>"Necessitou de intubação durante a sessão" },
+  { id:"coag",label:"Coagulação do circuito", base:f=>"Sistema apresentou coagulação",
     condutas:[
       {id:"zerouf",label:"Zerado UF",frag:f=>"zerada a UF"},
       {id:"rinse",label:"Rinse",frag:f=>"realizado rinse"},
@@ -205,19 +236,26 @@ const PICKS=[
       {id:"tmat",label:"Troca de material",frag:f=>"realizada troca de material"},
       {id:"tlin",label:"Troca de linha",frag:f=>"realizada troca de linha"},
     ]},
-  { id:"cdl",label:"Mau funcionamento do CDL",freq:"5%",base:f=>"CDL com mau funcionamento (refluxo/colabamento)",
+  { id:"acesso",label:"Disfunção de acesso", base:f=>"Disfunção de acesso (refluxo/colabamento/sem fluxo)",
     condutas:[
-      {id:"invert",label:"Invertido linhas",frag:f=>"invertidas as linhas (arterial/venosa)"},
+      {id:"invert",label:"Inversão das vias",frag:f=>"invertidas as vias (arterial/venosa)"},
       {id:"rinse",label:"Rinse",frag:f=>"realizado rinse"},
       {id:"sf",label:"SF 0,9% no cateter",frag:f=>"infundido SF 0,9% no cateter"},
       {id:"hep",label:"Heparina (a pedido do plantonista)",frag:f=>"feita heparina a pedido do plantonista"},
       {id:"asp",label:"Aspiração / desobstrução",frag:f=>"realizada aspiração/desobstrução do cateter"},
       {id:"repasse",label:"Repasse de CDL",frag:f=>"solicitado repasse de CDL"},
     ]},
-  { id:"hiper",label:"Crise hipertensiva",freq:"2%",base:f=>"Paciente apresentou crise hipertensiva",
-    condutas:[{id:"presc",label:"Conforme prescrição",frag:f=>"conduta conforme prescrição médica"},{id:"plant",label:"Medicação a pedido do plantonista",frag:f=>"medicação a pedido do plantonista"}]},
-  { id:"agit",label:"Agitação / sedação",freq:"2%",base:f=>"Paciente apresentou agitação",
+  { id:"sangramento",label:"Sangramento", base:f=>"Apresentou sangramento" },
+  { id:"obito",label:"Óbito", base:f=>"Paciente evoluiu a óbito" },
+  { id:"caimbra",label:"Câimbras", base:f=>"Apresentou câimbras" },
+  { id:"nausea",label:"Náuseas / vômitos", base:f=>"Apresentou náuseas/vômitos" },
+  { id:"cefaleia",label:"Cefaleia", base:f=>"Apresentou cefaleia" },
+  { id:"febre",label:"Calafrios / febre", base:f=>"Apresentou calafrios/febre" },
+  { id:"prurido",label:"Prurido / reação ao dialisador", base:f=>"Apresentou prurido/reação ao dialisador" },
+  { id:"agit",label:"Agitação", base:f=>"Paciente apresentou agitação",
     condutas:[{id:"sed",label:"Sedação",fields:[{k:"med",lbl:"qual",wide:true}],frag:f=>"em uso de sedação"+((f.med||"").trim()?` (${f.med.trim()})`:"")},{id:"cont",label:"Contenção no leito",frag:f=>"contenção no leito"}]},
+  { id:"medreduz",label:"Indicação médica", base:f=>"Conduta por indicação médica" },
+  { id:"oper",label:"Operacional", base:f=>"Intercorrência operacional" },
 ];
 
 function App(){
@@ -226,6 +264,7 @@ function App(){
   const [band,setBand]=useState(()=>completaId(readRx()||DEMO));
   const [ufObtida,setUfObtida]=useState(()=> (rx.ufe||"").toString());
   const [motivos,setMotivos]=useState({});
+  const [status,setStatus]=useState({});
   const [clean,setClean]=useState(false);
   const [active,setActive]=useState({});
   const [cond,setCond]=useState({});
@@ -260,6 +299,12 @@ function App(){
   function toggleCond(pid,cid){ setCond(c=>({...c,[pid]:{...(c[pid]||{}),[cid]:!(c[pid]||{})[cid]}})); }
   function setField(pid,k,v){ setFields(f=>({...f,[pid]:{...(f[pid]||{}),[k]:v}})); }
   function toggleMot(id){ setMotivos(m=>({...m,[id]:!m[id]})); }
+  function setStat(row,opt){ setStatus(s=>({...s,[row]:s[row]===opt?'':opt})); }
+  function statusSentence(){
+    const parts=[];
+    STATUS.forEach(row=>{ const sel=status[row.id]; if(sel){ const o=row.opts.find(x=>x.id===sel); if(o)parts.push(o.t); } });
+    return parts.length ? "Ao ligar a HD: "+parts.join(", ")+"." : "";
+  }
   function bandLabel(){ return cancelled?"Cancelada":timeLabel(band); }
   function motivosText(){ return MOTIVOS.filter(m=>motivos[m.id]).map(m=>m.t).join(", "); }
 
@@ -271,12 +316,11 @@ function App(){
   }
 
   const narrative=useMemo(()=>{
-    if(cancelled){ let s="Sessão cancelada"; const mt=motivosText(); if(mt)s+=" por "+mt; return s+"."; }
-    const segs=[];
-    if(reduced){
-      let s=`HD reduzida para ${bandLabel()} (prescrito ${rx.tempo||"4 horas"})`;
-      const mt=motivosText(); if(mt)s+=" por "+mt;
-      s+=`, com UF efetiva obtida de ${ufObt||"—"} ml`;
+    const segs=[]; { const st=statusSentence(); if(st)segs.push(st); }
+    if(cancelled){
+      segs.push("Sessão cancelada.");
+    } else if(reduced){
+      let s=`HD reduzida para ${bandLabel()} (prescrito ${rx.tempo||"4 horas"}), com UF efetiva obtida de ${ufObt||"—"} ml`;
       if(ufDiffers)s+=` (prescrita ${ufPresc} ml)`;
       segs.push(s+".");
     } else {
@@ -291,9 +335,9 @@ function App(){
     clin.forEach(c=>segs.push(c));
     if(free.trim()) segs.push(free.trim());
     let out=segs.join(" ");
-    if(clin.length) out+=" Sem mais intercorrências.";
+    if(clin.length && !reduced && !cancelled) out+=" Sem mais intercorrências.";
     return out.trim();
-  },[band,ufObtida,motivos,clean,active,cond,fields,free,rx]);
+  },[band,ufObtida,clean,active,cond,fields,free,status,rx]);
 
   const report=useMemo(()=>{
     const L=[];
@@ -317,7 +361,8 @@ function App(){
   },[rx,band,ufObtida,motivos,narrative,tec]);
 
   const decided = cancelled || reduced || clean || anyInterc || free.trim();
-  const ready = decided && tec.trim();
+  const statusComplete = STATUS.every(row => status[row.id]);
+  const ready = decided && tec.trim() && statusComplete;
   async function copy(){
     if(!ready)return;
     try{ await navigator.clipboard.writeText(report); }
@@ -327,7 +372,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">protótipo v0.5</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">protótipo v0.8</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
@@ -345,6 +390,20 @@ function App(){
       </div>
 
       {/* SESSION prescrito -> obtido */}
+      <div className="sec-h">Situação do paciente antes de iniciar a sessão</div>
+      <div className="session">
+        {STATUS.map(row=>(
+          <div className="srow" key={row.id}>
+            <div className="srow-h">{row.label}</div>
+            <div className="bands">
+              {row.opts.map(o=>(
+                <button key={o.id} className={"band neu"+(status[row.id]===o.id?" on":"")} onClick={()=>setStat(row.id,o.id)}>{o.label}</button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="sec-h">Sessão · prescrito → obtido</div>
       <div className="session">
         <div className="srow">
@@ -367,32 +426,23 @@ function App(){
               </div>
             </div>
           </div>}
-        {(reduced||cancelled) &&
-          <div className="srow">
-            <div className="srow-h">Motivo {cancelled?"do cancelamento":"da redução"}</div>
-            <div className="motgrid">
-              {MOTIVOS.map(m=>(
-                <button key={m.id} className={"mot"+(motivos[m.id]?" on":"")} onClick={()=>toggleMot(m.id)}>
-                  <span className="p">{motivos[m.id]&&<Check/>}</span>{m.label}
-                </button>
-              ))}
-            </div>
-          </div>}
       </div>
 
-      {!cancelled && <>
-        <div className="sec-h">Intercorrências clínicas</div>
+      <div className="sec-h">Intercorrências / motivo</div>
+      {!reduced && !cancelled &&
         <button className={"clean"+(clean?" on":"")} onClick={toggleClean}>
           <span className="chk"><Check c="var(--teal)"/></span>Sessão sem intercorrências
-        </button>
-        <div className="orline">ou registre o que houve</div>
+        </button>}
+      {(reduced||cancelled) &&
+        <div className="motnote">Sessão {cancelled?"cancelada":"reduzida"}: selecione o motivo na lista abaixo.</div>}
+      <div className="orline">{(reduced||cancelled)?"motivo da sessão / intercorrências":"ou registre o que houve"}</div>
         <div className="chips">
           {PICKS.map(p=>{
             const on=!!active[p.id];
             return (
               <div key={p.id} className={"chip"+(on?" on":"")}>
-                <button className="chip-btn" onClick={()=>togglePick(p.id)}><span className="box">{on&&<Check/>}</span>{p.label}<span className="freq">{p.freq}</span></button>
-                {on &&
+                <button className="chip-btn" onClick={()=>togglePick(p.id)}><span className="box">{on&&<Check/>}</span>{p.label}</button>
+                {on && (p.condutas || p.eventFields) &&
                   <div className="panel">
                     {p.eventFields&&p.eventFields.length>0 &&
                       <div className="cfields">
@@ -402,6 +452,7 @@ function App(){
                             {fl.u&&<span className="u">{fl.u}</span>}</span>
                         ))}
                       </div>}
+                    {p.condutas && <>
                     <div className="panel-h">Conduta</div>
                     <div className="cgrid">
                       {p.condutas.map(c=>{ const con=!!(cond[p.id]||{})[c.id];
@@ -415,19 +466,19 @@ function App(){
                             {fl.u&&<span className="u">{fl.u}</span>}</span>
                         )))}
                       </div>}
+                    </>}
                   </div>}
               </div>
             );
           })}
         </div>
-        <div className="free"><textarea placeholder="Outra observação (opcional)…" value={free} onChange={e=>setFree(e.target.value)} /></div>
-      </>}
+      <div className="free"><textarea placeholder="Outra observação (opcional)…" value={free} onChange={e=>setFree(e.target.value)} /></div>
 
       <div className="tec"><label>Técnico</label><input placeholder="seu nome" value={tec} onChange={e=>setTec(e.target.value)} /></div>
       <div className="preview"><div className="ph">Prévia — é isto que vai pro grupo</div><pre>{report}</pre></div>
 
       <div className="bar"><div className="bar-in">
-        <button className={"copy"+(ready?"":" empty")} onClick={copy}><Copy/>{ready?"Copiar relatório":(tec.trim()?"Defina o desfecho da sessão":"Preencha seu nome para copiar")}</button>
+        <button className={"copy"+(ready?"":" empty")} onClick={copy}><Copy/>{ready?"Copiar relatório":(!statusComplete?"Marque a situação inicial do paciente":(!decided?"Defina o desfecho da sessão":"Preencha seu nome para copiar"))}</button>
       </div></div>
       {toast&&<div className="toast"><Check/>{toast}</div>}
     </div>
