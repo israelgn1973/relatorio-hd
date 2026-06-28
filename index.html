@@ -70,6 +70,7 @@
   .cancelom{width:100%;border:1.5px solid #c7bdd9;background:#fff;color:#5a4a7a;border-radius:13px;padding:13px;cursor:pointer;font-size:15px;font-weight:700;margin:10px 0 0;display:flex;align-items:center;justify-content:center;gap:8px}
   .cancelom.on{background:#6f5b97;color:#fff;border-color:#6f5b97}
   .cancelom svg{width:18px;height:18px}
+  .presc-note{font-size:12px;color:var(--ink2);margin:0 2px 8px;line-height:1.35}
   .ufline{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
   .ufbox{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:7px 11px}
   .ufbox .arr{color:var(--ink2);font-size:13px;font-weight:700}
@@ -154,9 +155,9 @@ const Check=(p)=> <svg viewBox="0 0 24 24" fill="none" stroke={p.c||"#fff"} stro
 const Copy=()=> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>;
 
 function b64decode(s){ try{ return decodeURIComponent(escape(window.atob(s))); }catch(e){ return null; } }
-function readRx(){ const h=window.location.hash.replace(/^#/,''); if(h){const j=b64decode(h); if(j){try{ const o=JSON.parse(j); return { data:o.d||o.data||"", nome:o.n||o.nome||"", idade:o.i||o.idade||"", leito:o.l||o.leito||"", setor:o.s||o.setor||"", convenio:o.c||o.convenio||"", hospital:o.hospital||"Ruy Azeredo", tempo:o.t||o.tempo||"", uft:o.ut||o.uft||"", ufe:o.ue||o.ufe||"" }; }catch(e){}}} return null; }
+function readRx(){ const h=window.location.hash.replace(/^#/,''); if(h){const j=b64decode(h); if(j){try{ const o=JSON.parse(j); return { data:o.d||o.data||"", nome:o.n||o.nome||"", idade:o.i||o.idade||"", leito:o.l||o.leito||"", setor:o.s||o.setor||"", convenio:o.c||o.convenio||"", hospital:o.hospital||"Ruy Azeredo", tempo:o.t||o.tempo||"", uft:o.ut||o.uft||"", ufe:o.ue||o.ufe||"", presc:o.px||o.presc||"" }; }catch(e){}}} return null; }
 const DEMO={ data:"27/06/2026",nome:"Antônio Pereira de Souza",idade:"71 anos",leito:"03",setor:"UTI Amarela",
-  convenio:"SUS",hospital:"Ruy Azeredo",tempo:"4 horas",inicio:"09:00",final:"13:00",uft:"2100",ufe:"1000",demo:true };
+  convenio:"SUS",hospital:"Ruy Azeredo",tempo:"4 horas",inicio:"09:00",final:"13:00",uft:"2100",ufe:"1000",presc:"Acesso: CDL. Fluxo de sangue 200 ml/min, banho 300 ml/min. Anticoagulação sem heparina. Dialisato: sódio 142, temperatura 35 °C, bicarbonato 34. Fechamento do cateter: heparina diluída.",demo:true };
 
 // achieved session time in discrete 30-min multiples (techs report this way)
 const ALLTIMES=[
@@ -263,9 +264,13 @@ const PICKS=[
     condutas:[{id:"sed",label:"Sedação",fields:[{k:"med",lbl:"qual",wide:true}],frag:f=>"em uso de sedação"+((f.med||"").trim()?` (${f.med.trim()})`:"")},{id:"cont",label:"Contenção no leito",frag:f=>"contenção no leito"}]},
   { id:"medreduz",label:"Indicação médica", base:f=>"Conduta por indicação médica" },
   { id:"oper",label:"Operacional", base:f=>"Intercorrência operacional" },
-  { id:"interromp_om",label:"Interrompida por ordem médica", base:f=>"Sessão interrompida por ordem médica" },
+  { id:"interromp",label:"Interrompida", base:f=>"Sessão interrompida",
+    condutas:[
+      {id:"om",label:"Ordem médica",frag:f=>"por ordem médica"},
+      {id:"tec",label:"Problema técnico",frag:f=>"por problema técnico"},
+    ]},
 ];
-const COMMON_IDS=["acesso","hipo","coag","glic","instab","interromp_om"];
+const COMMON_IDS=["acesso","hipo","coag","glic","instab","interromp"];
 const COMMON=COMMON_IDS.map(id=>PICKS.find(p=>p.id===id));
 const OUTRAS=PICKS.filter(p=>!COMMON_IDS.includes(p.id));
 
@@ -284,6 +289,7 @@ function App(){
   const [showOutras,setShowOutras]=useState(false);
   const [tec,setTec]=useState("");
   const [cancelOM,setCancelOM]=useState(false);
+  const [presc,setPresc]=useState(()=>(readRx()||DEMO).presc||"");
   const [showDemo,setShowDemo]=useState(!!rx.demo);
   const [toast,setToast]=useState("");
 
@@ -362,6 +368,7 @@ function App(){
     if(rx.setor)L.push(`Uti: ${rx.setor}`);
     L.push(`Convênio: ${rx.convenio||""}`);
     L.push(`Hospital: ${rx.hospital||""}`);
+    if(!cancelled && presc.trim()) L.push(`Prescrição: ${presc.trim()}`);
     if(!cancelled){
       const tc=bandClock(); if(tc)L.push(`Tempo: ${tc}`);
       if(ufTotalOut)L.push(`Uf total: ${ufTotalOut}`);
@@ -372,7 +379,7 @@ function App(){
     L.push(`Evolução de Enfermagem: ${narrative||"—"}`);
     L.push(`Técnico: ${tec.trim()||""}`);
     return L.join("\n");
-  },[rx,band,ufObtida,motivos,narrative,tec]);
+  },[rx,band,ufObtida,motivos,narrative,tec,presc]);
 
   const decided = cancelled || reduced || clean || anyInterc || free.trim();
   const statusComplete = STATUS.every(row => status[row.id]);
@@ -421,7 +428,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.3</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.5</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
@@ -464,7 +471,6 @@ function App(){
             {visibleTimes(rx).map(t=>(
               <button key={t.id} className={`band ${t.id===COMPLETA?"ok":"warn"}`+(band===t.id?" on":"")} onClick={()=>setBand(t.id)}>{t.label}{t.id===COMPLETA?" ✓":""}</button>
             ))}
-            <button className={"band bad"+(band==="cancel"?" on":"")} onClick={()=>setBand("cancel")}>Cancelada</button>
           </div>
         </div>
         {!cancelled &&
@@ -493,6 +499,9 @@ function App(){
           {!(reduced||cancelled) && <button type="button" className="outras-btn" onClick={()=>setShowOutras(v=>!v)}>{showOutras?"− menos opções":"+ outras"}<span className="outras-n">{OUTRAS.length}</span></button>}
           {(showOutras||motivoNeeded) && OUTRAS.map(chipEl)}
         </div>
+      <div className="sec-h">Prescrição</div>
+      <div className="presc-note">Já preenchida pela prescrição — editar só se houver desvio.</div>
+      <div className="free"><textarea value={presc} onChange={e=>setPresc(e.target.value)} /></div>
       <div className="free"><textarea placeholder="Outra observação (opcional)…" value={free} onChange={e=>setFree(e.target.value)} /></div>
 
       <div className="tec"><label>Técnico</label><input placeholder="seu nome" value={tec} onChange={e=>setTec(e.target.value)} /></div>
