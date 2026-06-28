@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="theme-color" content="#0E6E68" />
-<title>Relatório HD · protótipo v0.9</title>
+<title>Relatório de hemodiálise</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -345,7 +345,6 @@ function App(){
     L.push(`Paciente: ${rx.nome||""}`);
     if(rx.idade)L.push(`Idade: ${rx.idade}`);
     if(rx.setor)L.push(`Uti: ${rx.setor}`);
-    L.push(`Leito: ${rx.leito||""}`);
     L.push(`Convênio: ${rx.convenio||""}`);
     L.push(`Hospital: ${rx.hospital||""}`);
     if(!cancelled){
@@ -372,13 +371,13 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">protótipo v0.9</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.0</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
         <span className="lockpill"><Lock/> definido na prescrição</span>
         <div className="pname">{rx.nome}</div>
-        <div className="pmeta">Leito {rx.leito}{rx.setor?<span> · {/^UTI/i.test(rx.setor)?rx.setor:'UTI '+rx.setor}</span>:null}<span className="dot">•</span>{rx.convenio}<span className="dot">•</span>{rx.hospital}{rx.idade?<span><span className="dot">•</span>{/ano/i.test(rx.idade)?rx.idade:rx.idade+' anos'}</span>:null}</div>
+        <div className="pmeta">{rx.leito?<span>Leito {rx.leito}{rx.setor?' · ':''}</span>:null}{rx.setor?<span>{/^UTI/i.test(rx.setor)?rx.setor:'UTI '+rx.setor}</span>:null}<span className="dot">•</span>{rx.convenio}<span className="dot">•</span>{rx.hospital}{rx.idade?<span><span className="dot">•</span>{/ano/i.test(rx.idade)?rx.idade:rx.idade+' anos'}</span>:null}</div>
         <div className="pdate">Goiânia, {rx.data}</div>
         <hr className="rule"/>
         <div className="rx-h">Prescrição</div>
