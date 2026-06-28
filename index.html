@@ -67,6 +67,9 @@
   .band.bad{color:var(--red-d);border-color:var(--red-line)}
   .band.om{color:#5a4a7a;border-color:#c7bdd9}
   .band.om.on{background:#6f5b97;color:#fff;border-color:#6f5b97}
+  .cancelom{width:100%;border:1.5px solid #c7bdd9;background:#fff;color:#5a4a7a;border-radius:13px;padding:13px;cursor:pointer;font-size:15px;font-weight:700;margin:10px 0 0;display:flex;align-items:center;justify-content:center;gap:8px}
+  .cancelom.on{background:#6f5b97;color:#fff;border-color:#6f5b97}
+  .cancelom svg{width:18px;height:18px}
   .ufline{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
   .ufbox{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:7px 11px}
   .ufbox .arr{color:var(--ink2);font-size:13px;font-weight:700}
@@ -260,8 +263,9 @@ const PICKS=[
     condutas:[{id:"sed",label:"Sedação",fields:[{k:"med",lbl:"qual",wide:true}],frag:f=>"em uso de sedação"+((f.med||"").trim()?` (${f.med.trim()})`:"")},{id:"cont",label:"Contenção no leito",frag:f=>"contenção no leito"}]},
   { id:"medreduz",label:"Indicação médica", base:f=>"Conduta por indicação médica" },
   { id:"oper",label:"Operacional", base:f=>"Intercorrência operacional" },
+  { id:"interromp_om",label:"Interrompida por ordem médica", base:f=>"Sessão interrompida por ordem médica" },
 ];
-const COMMON_IDS=["acesso","hipo","coag","glic"];
+const COMMON_IDS=["acesso","hipo","coag","glic","instab","interromp_om"];
 const COMMON=COMMON_IDS.map(id=>PICKS.find(p=>p.id===id));
 const OUTRAS=PICKS.filter(p=>!COMMON_IDS.includes(p.id));
 
@@ -279,13 +283,13 @@ function App(){
   const [free,setFree]=useState("");
   const [showOutras,setShowOutras]=useState(false);
   const [tec,setTec]=useState("");
+  const [cancelOM,setCancelOM]=useState(false);
   const [showDemo,setShowDemo]=useState(!!rx.demo);
   const [toast,setToast]=useState("");
 
-  const cancelled = band==="cancel" || band==="cancel_om";
-  const interrupted = band==="interromp_om";
-  const reduced = band!==COMPLETA && !cancelled && !interrupted;
-  const motivoNeeded = reduced || band==="cancel";
+  const cancelled = band==="cancel" || cancelOM;
+  const reduced = band!==COMPLETA && band!=="cancel";
+  const motivoNeeded = !cancelOM && (reduced || band==="cancel");
   const anyInterc = Object.values(active).some(Boolean);
   const ufPresc=(rx.ufe||"").toString().trim();
   const ufObt=(ufObtida||"").toString().trim();
@@ -299,7 +303,7 @@ function App(){
   const ufObtN=parseInt(ufObt.replace(/\D/g,""));
   const priming=(uftPrescN&&ufePrescN)?(uftPrescN-ufePrescN):0;
   const ufTotalOut=(!isNaN(ufObtN)?(ufObtN+priming):uftPrescN)||"";
-  function finalObt(){ if(cancelled||interrupted)return ""; if(!rx.inicio)return rx.final||""; if(band===COMPLETA)return rx.final||"";
+  function finalObt(){ if(cancelled)return ""; if(!rx.inicio)return rx.final||""; if(band===COMPLETA)return rx.final||"";
     const t=ALLTIMES.find(x=>x.id===band); if(!t)return rx.final||"";
     const p=rx.inicio.split(":").map(Number); if(p.length<2||isNaN(p[0]))return rx.final||"";
     let tot=(p[0]*60+p[1]+t.min)%1440; return Math.floor(tot/60)+":"+String(tot%60).padStart(2,"0"); }
@@ -326,13 +330,10 @@ function App(){
   }
 
   const narrative=useMemo(()=>{
+    if(cancelOM) return "Sessão cancelada por ordem médica.";
     const segs=[]; { const st=statusSentence(); if(st)segs.push(st); }
     if(cancelled){
-      segs.push(band==="cancel_om" ? "Sessão cancelada por ordem médica." : "Sessão cancelada.");
-    } else if(interrupted){
-      let s=`Sessão interrompida por ordem médica, com UF efetiva obtida de ${ufObt||"—"} ml`;
-      if(ufDiffers)s+=` (prescrita ${ufPresc} ml)`;
-      segs.push(s+".");
+      segs.push("Sessão cancelada.");
     } else if(reduced){
       let s=`HD reduzida para ${bandLabel()} (prescrito ${rx.tempo||"4 horas"}), com UF efetiva obtida de ${ufObt||"—"} ml`;
       if(ufDiffers)s+=` (prescrita ${ufPresc} ml)`;
@@ -349,7 +350,7 @@ function App(){
     clin.forEach(c=>segs.push(c));
     if(free.trim()) segs.push(free.trim());
     let out=segs.join(" ");
-    if(clin.length && !reduced && !cancelled && !interrupted) out+=" Sem mais intercorrências.";
+    if(clin.length && !reduced && !cancelled) out+=" Sem mais intercorrências.";
     return out.trim();
   },[band,ufObtida,clean,active,cond,fields,free,status,rx]);
 
@@ -373,9 +374,9 @@ function App(){
     return L.join("\n");
   },[rx,band,ufObtida,motivos,narrative,tec]);
 
-  const decided = cancelled || reduced || interrupted || clean || anyInterc || free.trim();
+  const decided = cancelled || reduced || clean || anyInterc || free.trim();
   const statusComplete = STATUS.every(row => status[row.id]);
-  const ready = decided && tec.trim() && statusComplete;
+  const ready = cancelOM || (decided && tec.trim() && statusComplete);
   async function copy(){
     if(!ready)return;
     try{ await navigator.clipboard.writeText(report); }
@@ -420,7 +421,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.2</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.3</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
@@ -437,6 +438,9 @@ function App(){
         </div>
       </div>
 
+      <button type="button" className={"cancelom"+(cancelOM?" on":"")} onClick={()=>setCancelOM(v=>!v)}>Cancelada por ordem médica</button>
+
+      {!cancelOM && <>
       {/* SESSION prescrito -> obtido */}
       <div className="sec-h">Situação do paciente antes de iniciar a sessão</div>
       <div className="session">
@@ -461,8 +465,6 @@ function App(){
               <button key={t.id} className={`band ${t.id===COMPLETA?"ok":"warn"}`+(band===t.id?" on":"")} onClick={()=>setBand(t.id)}>{t.label}{t.id===COMPLETA?" ✓":""}</button>
             ))}
             <button className={"band bad"+(band==="cancel"?" on":"")} onClick={()=>setBand("cancel")}>Cancelada</button>
-            <button className={"band om"+(band==="interromp_om"?" on":"")} onClick={()=>setBand("interromp_om")}>Interrompida · ordem médica</button>
-            <button className={"band om"+(band==="cancel_om"?" on":"")} onClick={()=>setBand("cancel_om")}>Cancelada · ordem médica</button>
           </div>
         </div>
         {!cancelled &&
@@ -479,7 +481,7 @@ function App(){
       </div>
 
       <div className="sec-h">Intercorrências / motivo</div>
-      {!reduced && !cancelled && !interrupted &&
+      {!reduced && !cancelled &&
         <button className={"clean"+(clean?" on":"")} onClick={toggleClean}>
           <span className="chk"><Check c="var(--teal)"/></span>Sessão sem intercorrências
         </button>}
@@ -494,6 +496,7 @@ function App(){
       <div className="free"><textarea placeholder="Outra observação (opcional)…" value={free} onChange={e=>setFree(e.target.value)} /></div>
 
       <div className="tec"><label>Técnico</label><input placeholder="seu nome" value={tec} onChange={e=>setTec(e.target.value)} /></div>
+      </>}
       <div className="preview"><div className="ph">Prévia — é isto que vai pro grupo</div><pre>{report}</pre></div>
 
       <div className="bar"><div className="bar-in">
