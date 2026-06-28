@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="theme-color" content="#0E6E68" />
+<title>Relatório HD · protótipo v0.5</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#EEF2F3;--ink:#16282C;--ink2:#5C6E73;--line:#D8E0E2;
+    --lock-bg:#E3E9EA;--lock-ink:#43565B;
+    --teal:#0E6E68;--teal-d:#0A5651;
+    --clay:#B5541C;--clay-d:#8F3F12;--clay-tint:#F8E9DD;--clay-line:#E7C3A4;
+    --red:#B3261E;--red-d:#8E1B15;--red-tint:#FBE9E7;--red-line:#F0C2BC;
+    --white:#FFFFFF;--r:16px;--r-sm:11px;--tap:54px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.4;padding-bottom:env(safe-area-inset-bottom)}
+  .wrap{max-width:480px;margin:0 auto;padding:18px 16px 132px}
+  .eyebrow{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 14px}
+  .eyebrow h1{font-size:15px;font-weight:700;letter-spacing:.2px;margin:0}
+  .eyebrow .ver{font-size:11px;color:var(--ink2);font-weight:600}
+
+  .demo{background:#FFF6E5;border:1px solid #F0DCA8;color:#7A5A12;font-size:12.5px;line-height:1.35;
+    border-radius:var(--r-sm);padding:9px 11px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start}
+  .demo b{font-weight:700}
+  .demo button{margin-left:auto;background:none;border:none;color:#7A5A12;font-size:18px;line-height:1;padding:0 2px;cursor:pointer;flex:none}
+
+  .card{background:var(--lock-bg);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 15px;position:relative;margin-bottom:20px}
+  .lockpill{position:absolute;top:-10px;left:14px;background:var(--lock-ink);color:#fff;font-size:10.5px;font-weight:700;
+    letter-spacing:.3px;padding:3px 9px 3px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;text-transform:uppercase}
+  .lockpill svg{width:11px;height:11px}
+  .pname{font-size:24px;font-weight:800;letter-spacing:-.2px;line-height:1.12;margin:6px 0 3px}
+  .pmeta{font-size:13.5px;color:var(--lock-ink);font-weight:600}
+  .pmeta .dot{opacity:.45;margin:0 6px}
+  .pdate{font-size:12.5px;color:var(--lock-ink);opacity:.85;margin-top:2px;font-weight:600}
+  .rule{height:1px;background:var(--line);margin:13px 0 11px;border:0}
+  .rx-h{font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--lock-ink);opacity:.75;margin-bottom:7px}
+  .rx-grid{display:flex;flex-wrap:wrap;gap:7px}
+  .rx{background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px 10px}
+  .rx .k{font-size:10px;color:var(--ink2);font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+  .rx .v{font-size:15px;font-weight:700;line-height:1.1;margin-top:1px}
+
+  .sec-h{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink2);margin:0 2px 10px}
+
+  /* SESSION (prescrito -> obtido) */
+  .session{background:var(--white);border:1.5px solid var(--line);border-radius:var(--r);padding:14px 14px 4px;margin-bottom:22px}
+  .srow{padding-bottom:13px;margin-bottom:13px;border-bottom:1px dashed var(--line)}
+  .srow:last-child{border-bottom:0;margin-bottom:0}
+  .srow-h{font-size:13px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .ptag{font-size:11.5px;font-weight:700;color:var(--ink2);background:#EEF2F3;border-radius:20px;padding:2px 9px}
+  .bands{display:flex;flex-wrap:wrap;gap:6px}
+  .band{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 11px;
+    font-size:13px;font-weight:700;cursor:pointer;transition:.1s}
+  .band.ok.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .band.warn.on{background:var(--clay);color:#fff;border-color:var(--clay)}
+  .band.bad.on{background:var(--red);color:#fff;border-color:var(--red)}
+  .band.bad{color:var(--red-d);border-color:var(--red-line)}
+  .ufline{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .ufbox{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:7px 11px}
+  .ufbox .arr{color:var(--ink2);font-size:13px;font-weight:700}
+  .ufbox input{font-size:17px;font-weight:800;color:var(--ink);border:0;outline:none;width:70px;text-align:right;background:none;font-family:inherit}
+  .ufbox .u{font-size:13px;color:var(--ink2);font-weight:600}
+  .ufbox.diff{border-color:var(--clay);background:var(--clay-tint)}
+  .motgrid{display:flex;flex-wrap:wrap;gap:7px}
+  .mot{border:1.5px solid var(--clay-line);background:#fff;color:var(--clay-d);border-radius:20px;padding:8px 13px;
+    font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.1s}
+  .mot .p{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--clay-line);display:flex;align-items:center;justify-content:center}
+  .mot.on{background:var(--clay);color:#fff;border-color:var(--clay)}
+  .mot.on .p{background:#fff;border-color:#fff}
+  .mot.on .p svg{width:9px;height:9px}
+
+  .clean{width:100%;border:1.5px solid var(--teal);cursor:pointer;border-radius:var(--r);min-height:var(--tap);
+    padding:15px 16px;font-size:17px;font-weight:700;display:flex;align-items:center;gap:11px;justify-content:center;
+    background:var(--white);color:var(--teal-d);transition:.12s}
+  .clean .chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--teal);display:flex;align-items:center;justify-content:center;flex:none}
+  .clean .chk svg{width:14px;height:14px;opacity:0}
+  .clean.on{background:var(--teal);color:#fff}
+  .clean.on .chk{background:#fff}
+  .clean.on .chk svg{opacity:1}
+  .orline{display:flex;align-items:center;gap:10px;color:var(--ink2);font-size:12px;font-weight:600;margin:16px 2px 11px}
+  .orline:before,.orline:after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .chips{display:flex;flex-direction:column;gap:9px}
+  .chip{background:var(--white);border:1.5px solid var(--line);border-radius:13px;overflow:hidden;transition:.12s}
+  .chip.on{border-color:var(--clay);background:var(--clay-tint)}
+  .chip-btn{width:100%;border:0;background:none;cursor:pointer;display:flex;align-items:center;gap:11px;padding:13px 14px;text-align:left;font-size:15.5px;font-weight:600;color:var(--ink);min-height:50px}
+  .chip .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center}
+  .chip.on .box{background:var(--clay);border-color:var(--clay)}
+  .chip.on .box svg{width:13px;height:13px}
+  .chip .freq{margin-left:auto;font-size:11px;font-weight:700;color:var(--ink2);background:#EEF2F3;padding:2px 8px;border-radius:20px;flex:none}
+  .chip.on .freq{background:#fff;color:var(--clay)}
+  .panel{padding:2px 14px 14px;border-top:1px dashed var(--clay-line)}
+  .panel-h{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--clay-d);margin:11px 0 9px}
+  .cgrid{display:flex;flex-wrap:wrap;gap:7px}
+  .cpill{border:1.5px solid var(--clay-line);background:#fff;color:var(--clay-d);border-radius:20px;padding:8px 13px;
+    font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.1s}
+  .cpill .p{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--clay-line);display:flex;align-items:center;justify-content:center}
+  .cpill.on{background:var(--clay);color:#fff;border-color:var(--clay)}
+  .cpill.on .p{background:#fff;border-color:#fff}
+  .cpill.on .p svg{width:9px;height:9px}
+  .cfields{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+  .fld{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--clay-d);font-weight:600;background:#fff;border:1.5px solid var(--clay-line);border-radius:10px;padding:6px 9px}
+  .fld .lbl{font-weight:700}
+  .fld input{font-size:15px;font-weight:600;color:var(--ink);border:0;outline:none;width:52px;text-align:center;background:none;font-family:inherit}
+  .fld input.wide{width:100%;min-width:150px;text-align:left}
+  .fld .u{font-size:12px;color:var(--ink2)}
+
+  .free{margin-top:14px}
+  .free textarea{width:100%;min-height:60px;resize:vertical;font-family:inherit;font-size:15.5px;color:var(--ink);background:var(--white);border:1.5px solid var(--line);border-radius:13px;padding:12px 13px;outline:none;line-height:1.45}
+  .free textarea:focus{border-color:var(--teal)}
+  .free textarea::placeholder{color:#9AA9AD}
+  .tec{margin-top:14px;display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--line);border-radius:13px;padding:11px 13px}
+  .tec label{font-size:13px;font-weight:700;color:var(--ink2);flex:none}
+  .tec input{flex:1;font-size:15.5px;font-weight:600;color:var(--ink);border:0;outline:none;background:none;font-family:inherit}
+  .tec input::placeholder{color:#9AA9AD;font-weight:500}
+
+  .preview{margin-top:20px;background:#10242A;border-radius:var(--r);padding:14px 15px}
+  .preview .ph{font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#6FA9A3;margin-bottom:8px}
+  .preview pre{margin:0;white-space:pre-wrap;word-break:break-word;color:#E6F0EF;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.5}
+
+  .bar{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(to top,var(--bg) 72%,transparent);padding:12px 16px calc(14px + env(safe-area-inset-bottom));z-index:20}
+  .bar-in{max-width:480px;margin:0 auto}
+  .copy{width:100%;border:0;border-radius:15px;min-height:var(--tap);font-size:17px;font-weight:800;color:#fff;background:var(--teal);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 20px -6px rgba(14,110,104,.5);transition:.12s}
+  .copy:active{transform:translateY(1px)}
+  .copy.empty{background:#B7C3C5;box-shadow:none}
+  .copy svg{width:19px;height:19px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:#10242A;color:#fff;font-size:14px;font-weight:600;padding:10px 18px;border-radius:30px;z-index:40;box-shadow:0 8px 24px -6px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useMemo} = React;
+const Lock=()=> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>;
+const Check=(p)=> <svg viewBox="0 0 24 24" fill="none" stroke={p.c||"#fff"} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>;
+const Copy=()=> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>;
+
+function b64decode(s){ try{ return decodeURIComponent(escape(window.atob(s))); }catch(e){ return null; } }
+function readRx(){ const h=window.location.hash.replace(/^#/,''); if(h){const j=b64decode(h); if(j){try{return JSON.parse(j);}catch(e){}}} return null; }
+const DEMO={ data:"27/06/2026",nome:"Antônio Pereira de Souza",idade:"71 anos",leito:"03",setor:"UTI Amarela",
+  convenio:"SUS",hospital:"Ruy Azeredo",tempo:"4 horas",inicio:"09:00",final:"13:00",uft:"2100",ufe:"1000",demo:true };
+
+// achieved session time in discrete 30-min multiples (techs report this way)
+const ALLTIMES=[
+  {id:"lt30",label:"< 30 min",min:15},
+  {id:"t30",label:"30 min",min:30},
+  {id:"t60",label:"1h",min:60},
+  {id:"t90",label:"1h30",min:90},
+  {id:"t120",label:"2h",min:120},
+  {id:"t150",label:"2h30",min:150},
+  {id:"t180",label:"3h",min:180},
+  {id:"t210",label:"3h30",min:210},
+  {id:"t240",label:"4h",min:240},
+];
+function prescMin(rx){
+  const t=(rx.tempo||"").toLowerCase(); let h=0,m=0;
+  const hm=t.match(/(\d+)\s*h/); if(hm)h=parseInt(hm[1]);
+  const mm=t.match(/(\d+)\s*min/); if(mm)m=parseInt(mm[1]);
+  if(!hm){ const n=t.match(/(\d+)/); if(n)h=parseInt(n[1]); }
+  if(/h\s*30/.test(t))m=30;
+  return (h*60+m)||240;
+}
+function visibleTimes(rx){ const pm=prescMin(rx); return ALLTIMES.filter(t=>t.min<=pm); }
+function completaId(rx){ const v=visibleTimes(rx); return v.length?v[v.length-1].id:"t240"; }
+function timeLabel(id){ const t=ALLTIMES.find(x=>x.id===id); return t?t.label:""; }
+const MOTIVOS=[
+  {id:"maquina",label:"Defeito na máquina",t:"defeito na máquina"},
+  {id:"log",label:"Logística / transporte",t:"logística/transporte"},
+  {id:"remaneja",label:"Paciente mais grave (remanejamento)",t:"remanejamento para paciente mais grave"},
+  {id:"instab",label:"Instabilidade hemodinâmica",t:"instabilidade hemodinâmica"},
+  {id:"medico",label:"Indicação do médico/plantonista",t:"indicação do médico plantonista"},
+  {id:"coag",label:"Coagulação do sistema",t:"coagulação do sistema"},
+  {id:"cdl",label:"Mau funcionamento do CDL",t:"mau funcionamento do CDL"},
+  {id:"obito",label:"Óbito",t:"óbito do paciente"},
+];
+const PICKS=[
+  { id:"hipo",label:"Hipotensão",freq:"38%", base:f=>"Paciente apresentou hipotensão durante a sessão",
+    condutas:[
+      {id:"noraup",label:"Aumento de Nora",fields:[{k:"de",lbl:"de"},{k:"ate",lbl:"até",u:"ml/h"}],
+        frag:f=>{const a=(f.de||"").trim(),b=(f.ate||"").trim();let s="realizado aumento de Noradrenalina";if(a&&b)s+=` de ${a} até ${b} ml/h`;else if(b)s+=` para ${b} ml/h`;return s;}},
+      {id:"norastart",label:"Início de Nora",frag:f=>"iniciada Noradrenalina"},
+      {id:"vol",label:"Reposição de volume",frag:f=>"reposição de volume"},
+      {id:"zerouf",label:"Zerado UF",frag:f=>"zerada a UF"},
+      {id:"reduf",label:"Reduzida UF",frag:f=>"reduzida a UF"},
+      {id:"trend",label:"Trendelemburg",frag:f=>"posicionado em Trendelemburg"},
+      {id:"presc",label:"Conforme prescrição",frag:f=>"conforme prescrição médica"},
+    ]},
+  { id:"glic",label:"Hipoglicemia",freq:"16%",eventFields:[{k:"hgt",lbl:"HGT",u:"mg/dL"}],
+    base:f=>"Apresentou hipoglicemia"+((f.hgt||"").trim()?` (HGT ${f.hgt.trim()})`:""),
+    condutas:[{id:"presc",label:"Corrigida conforme prescrição",frag:f=>"corrigida conforme prescrição médica"},{id:"glic",label:"Glicose EV",frag:f=>"administrada glicose EV"}]},
+  { id:"coag",label:"Coagulação do sistema",freq:"5%",base:f=>"Sistema apresentou coagulação",
+    condutas:[
+      {id:"zerouf",label:"Zerado UF",frag:f=>"zerada a UF"},
+      {id:"rinse",label:"Rinse",frag:f=>"realizado rinse"},
+      {id:"hep",label:"Heparina (a pedido do plantonista)",frag:f=>"feita heparina a pedido do plantonista"},
+      {id:"tmat",label:"Troca de material",frag:f=>"realizada troca de material"},
+      {id:"tlin",label:"Troca de linha",frag:f=>"realizada troca de linha"},
+    ]},
+  { id:"cdl",label:"Mau funcionamento do CDL",freq:"5%",base:f=>"CDL com mau funcionamento (refluxo/colabamento)",
+    condutas:[
+      {id:"invert",label:"Invertido linhas",frag:f=>"invertidas as linhas (arterial/venosa)"},
+      {id:"rinse",label:"Rinse",frag:f=>"realizado rinse"},
+      {id:"sf",label:"SF 0,9% no cateter",frag:f=>"infundido SF 0,9% no cateter"},
+      {id:"hep",label:"Heparina (a pedido do plantonista)",frag:f=>"feita heparina a pedido do plantonista"},
+      {id:"asp",label:"Aspiração / desobstrução",frag:f=>"realizada aspiração/desobstrução do cateter"},
+      {id:"repasse",label:"Repasse de CDL",frag:f=>"solicitado repasse de CDL"},
+    ]},
+  { id:"hiper",label:"Crise hipertensiva",freq:"2%",base:f=>"Paciente apresentou crise hipertensiva",
+    condutas:[{id:"presc",label:"Conforme prescrição",frag:f=>"conduta conforme prescrição médica"},{id:"plant",label:"Medicação a pedido do plantonista",frag:f=>"medicação a pedido do plantonista"}]},
+  { id:"agit",label:"Agitação / sedação",freq:"2%",base:f=>"Paciente apresentou agitação",
+    condutas:[{id:"sed",label:"Sedação",fields:[{k:"med",lbl:"qual",wide:true}],frag:f=>"em uso de sedação"+((f.med||"").trim()?` (${f.med.trim()})`:"")},{id:"cont",label:"Contenção no leito",frag:f=>"contenção no leito"}]},
+];
+
+function App(){
+  const [rx]=useState(()=>readRx()||DEMO);
+  const COMPLETA=completaId(rx);
+  const [band,setBand]=useState(()=>completaId(readRx()||DEMO));
+  const [ufObtida,setUfObtida]=useState(()=> (rx.ufe||"").toString());
+  const [motivos,setMotivos]=useState({});
+  const [clean,setClean]=useState(false);
+  const [active,setActive]=useState({});
+  const [cond,setCond]=useState({});
+  const [fields,setFields]=useState({});
+  const [free,setFree]=useState("");
+  const [tec,setTec]=useState("");
+  const [showDemo,setShowDemo]=useState(!!rx.demo);
+  const [toast,setToast]=useState("");
+
+  const reduced = band!==COMPLETA && band!=="cancel";
+  const cancelled = band==="cancel";
+  const anyInterc = Object.values(active).some(Boolean);
+  const ufPresc=(rx.ufe||"").toString().trim();
+  const ufObt=(ufObtida||"").toString().trim();
+  const ufDiffers = ufObt && ufObt!==ufPresc;
+  // --- parser-aligned output helpers (obtido values, defaults = prescrição) ---
+  function prescClock(){ const m=prescMin(rx); return Math.floor(m/60)+":"+String(m%60).padStart(2,"0"); }
+  function bandClock(){ if(cancelled)return ""; if(band===COMPLETA)return prescClock();
+    const t=ALLTIMES.find(x=>x.id===band); return t?Math.floor(t.min/60)+":"+String(t.min%60).padStart(2,"0"):""; }
+  const uftPrescN=parseInt((rx.uft||"").toString().replace(/\D/g,""))||0;
+  const ufePrescN=parseInt(ufPresc.replace(/\D/g,""))||0;
+  const ufObtN=parseInt(ufObt.replace(/\D/g,""));
+  const priming=(uftPrescN&&ufePrescN)?(uftPrescN-ufePrescN):0;
+  const ufTotalOut=(!isNaN(ufObtN)?(ufObtN+priming):uftPrescN)||"";
+  function finalObt(){ if(!rx.inicio)return rx.final||""; if(band===COMPLETA)return rx.final||"";
+    const t=ALLTIMES.find(x=>x.id===band); if(!t)return rx.final||"";
+    const p=rx.inicio.split(":").map(Number); if(p.length<2||isNaN(p[0]))return rx.final||"";
+    let tot=(p[0]*60+p[1]+t.min)%1440; return Math.floor(tot/60)+":"+String(tot%60).padStart(2,"0"); }
+
+  function toggleClean(){ if(clean){setClean(false);return;} setClean(true);setActive({});setCond({});setFields({}); }
+  function togglePick(id){ setClean(false); setActive(a=>({...a,[id]:!a[id]})); }
+  function toggleCond(pid,cid){ setCond(c=>({...c,[pid]:{...(c[pid]||{}),[cid]:!(c[pid]||{})[cid]}})); }
+  function setField(pid,k,v){ setFields(f=>({...f,[pid]:{...(f[pid]||{}),[k]:v}})); }
+  function toggleMot(id){ setMotivos(m=>({...m,[id]:!m[id]})); }
+  function bandLabel(){ return cancelled?"Cancelada":timeLabel(band); }
+  function motivosText(){ return MOTIVOS.filter(m=>motivos[m.id]).map(m=>m.t).join(", "); }
+
+  function pickSentence(p){
+    const f=fields[p.id]||{};
+    const frags=[]; (p.condutas||[]).forEach(c=>{ if((cond[p.id]||{})[c.id]) frags.push(c.frag(f)); });
+    let s=p.base(f)+(frags.length?", "+frags.join(", "):"");
+    return s.replace(/\s{2,}/g," ").trim()+".";
+  }
+
+  const narrative=useMemo(()=>{
+    if(cancelled){ let s="Sessão cancelada"; const mt=motivosText(); if(mt)s+=" por "+mt; return s+"."; }
+    const segs=[];
+    if(reduced){
+      let s=`HD reduzida para ${bandLabel()} (prescrito ${rx.tempo||"4 horas"})`;
+      const mt=motivosText(); if(mt)s+=" por "+mt;
+      s+=`, com UF efetiva obtida de ${ufObt||"—"} ml`;
+      if(ufDiffers)s+=` (prescrita ${ufPresc} ml)`;
+      segs.push(s+".");
+    } else {
+      if(clean){
+        if(ufDiffers) segs.push(`HD de ${rx.tempo||"4 horas"}, UF efetiva obtida de ${ufObt} ml (prescrita ${ufPresc} ml), sem intercorrências.`);
+        else segs.push(`HD de ${rx.tempo||"4 horas"} com UF efetiva de ${ufObt||ufPresc} ml, sem intercorrências.`);
+      } else if(ufDiffers){
+        segs.push(`UF efetiva obtida de ${ufObt} ml (prescrita ${ufPresc} ml).`);
+      }
+    }
+    const clin=[]; PICKS.forEach(p=>{ if(active[p.id]) clin.push(pickSentence(p)); });
+    clin.forEach(c=>segs.push(c));
+    if(free.trim()) segs.push(free.trim());
+    let out=segs.join(" ");
+    if(clin.length) out+=" Sem mais intercorrências.";
+    return out.trim();
+  },[band,ufObtida,motivos,clean,active,cond,fields,free,rx]);
+
+  const report=useMemo(()=>{
+    const L=[];
+    L.push(`Goiânia, ${rx.data||""}`);
+    L.push(`Paciente: ${rx.nome||""}`);
+    if(rx.idade)L.push(`Idade: ${rx.idade}`);
+    if(rx.setor)L.push(`Uti: ${rx.setor}`);
+    L.push(`Leito: ${rx.leito||""}`);
+    L.push(`Convênio: ${rx.convenio||""}`);
+    L.push(`Hospital: ${rx.hospital||""}`);
+    if(!cancelled){
+      const tc=bandClock(); if(tc)L.push(`Tempo: ${tc}`);
+      if(ufTotalOut)L.push(`Uf total: ${ufTotalOut}`);
+      L.push(`Uf efetiva: ${ufObt||ufPresc}`);
+      if(rx.inicio)L.push(`Início: ${rx.inicio}`);
+      const ff=finalObt(); if(ff)L.push(`Final: ${ff}`);
+    }
+    L.push(`Evolução de Enfermagem: ${narrative||"—"}`);
+    L.push(`Técnico: ${tec.trim()||""}`);
+    return L.join("\n");
+  },[rx,band,ufObtida,motivos,narrative,tec]);
+
+  const decided = cancelled || reduced || clean || anyInterc || free.trim();
+  const ready = decided && tec.trim();
+  async function copy(){
+    if(!ready)return;
+    try{ await navigator.clipboard.writeText(report); }
+    catch(e){ const ta=document.createElement("textarea");ta.value=report;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(_){}document.body.removeChild(ta); }
+    setToast("Relatório copiado");setTimeout(()=>setToast(""),1700);
+  }
+
+  return (
+    <div className="wrap">
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">protótipo v0.5</span></div>
+      {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
+
+      <div className="card">
+        <span className="lockpill"><Lock/> definido na prescrição</span>
+        <div className="pname">{rx.nome}</div>
+        <div className="pmeta">Leito {rx.leito}{rx.setor?<span> · {rx.setor}</span>:null}<span className="dot">•</span>{rx.convenio}<span className="dot">•</span>{rx.hospital}{rx.idade?<span><span className="dot">•</span>{rx.idade}</span>:null}</div>
+        <div className="pdate">Goiânia, {rx.data}</div>
+        <hr className="rule"/>
+        <div className="rx-h">Prescrição</div>
+        <div className="rx-grid">
+          <div className="rx"><div className="k">Tempo</div><div className="v">{rx.tempo}</div></div>
+          <div className="rx"><div className="k">UF total</div><div className="v">{rx.uft} ml</div></div>
+          <div className="rx"><div className="k">UF efetiva</div><div className="v">{rx.ufe} ml</div></div>
+        </div>
+      </div>
+
+      {/* SESSION prescrito -> obtido */}
+      <div className="sec-h">Sessão · prescrito → obtido</div>
+      <div className="session">
+        <div className="srow">
+          <div className="srow-h">Tempo de sessão <span className="ptag">prescrito: {rx.tempo}</span></div>
+          <div className="bands">
+            {visibleTimes(rx).map(t=>(
+              <button key={t.id} className={`band ${t.id===COMPLETA?"ok":"warn"}`+(band===t.id?" on":"")} onClick={()=>setBand(t.id)}>{t.label}{t.id===COMPLETA?" ✓":""}</button>
+            ))}
+            <button className={"band bad"+(band==="cancel"?" on":"")} onClick={()=>setBand("cancel")}>Cancelada</button>
+          </div>
+        </div>
+        {!cancelled &&
+          <div className="srow">
+            <div className="srow-h">UF efetiva <span className="ptag">prescrita: {rx.ufe} ml</span></div>
+            <div className="ufline">
+              <div className={"ufbox"+(ufDiffers?" diff":"")}>
+                <span className="arr">obtida</span>
+                <input inputMode="decimal" value={ufObtida} onChange={e=>setUfObtida(e.target.value)} />
+                <span className="u">ml</span>
+              </div>
+            </div>
+          </div>}
+        {(reduced||cancelled) &&
+          <div className="srow">
+            <div className="srow-h">Motivo {cancelled?"do cancelamento":"da redução"}</div>
+            <div className="motgrid">
+              {MOTIVOS.map(m=>(
+                <button key={m.id} className={"mot"+(motivos[m.id]?" on":"")} onClick={()=>toggleMot(m.id)}>
+                  <span className="p">{motivos[m.id]&&<Check/>}</span>{m.label}
+                </button>
+              ))}
+            </div>
+          </div>}
+      </div>
+
+      {!cancelled && <>
+        <div className="sec-h">Intercorrências clínicas</div>
+        <button className={"clean"+(clean?" on":"")} onClick={toggleClean}>
+          <span className="chk"><Check c="var(--teal)"/></span>Sessão sem intercorrências
+        </button>
+        <div className="orline">ou registre o que houve</div>
+        <div className="chips">
+          {PICKS.map(p=>{
+            const on=!!active[p.id];
+            return (
+              <div key={p.id} className={"chip"+(on?" on":"")}>
+                <button className="chip-btn" onClick={()=>togglePick(p.id)}><span className="box">{on&&<Check/>}</span>{p.label}<span className="freq">{p.freq}</span></button>
+                {on &&
+                  <div className="panel">
+                    {p.eventFields&&p.eventFields.length>0 &&
+                      <div className="cfields">
+                        {p.eventFields.map(fl=>(
+                          <span className="fld" key={fl.k}><span className="lbl">{fl.lbl}</span>
+                            <input inputMode="decimal" value={(fields[p.id]||{})[fl.k]||""} onChange={e=>setField(p.id,fl.k,e.target.value)} />
+                            {fl.u&&<span className="u">{fl.u}</span>}</span>
+                        ))}
+                      </div>}
+                    <div className="panel-h">Conduta</div>
+                    <div className="cgrid">
+                      {p.condutas.map(c=>{ const con=!!(cond[p.id]||{})[c.id];
+                        return <button key={c.id} className={"cpill"+(con?" on":"")} onClick={()=>toggleCond(p.id,c.id)}><span className="p">{con&&<Check/>}</span>{c.label}</button>; })}
+                    </div>
+                    {p.condutas.some(c=>(cond[p.id]||{})[c.id]&&c.fields) &&
+                      <div className="cfields">
+                        {p.condutas.filter(c=>(cond[p.id]||{})[c.id]&&c.fields).map(c=> c.fields.map(fl=>(
+                          <span className="fld" key={c.id+fl.k}><span className="lbl">{fl.lbl}</span>
+                            <input className={fl.wide?"wide":""} inputMode={fl.wide?"text":"decimal"} value={(fields[p.id]||{})[fl.k]||""} onChange={e=>setField(p.id,fl.k,e.target.value)} />
+                            {fl.u&&<span className="u">{fl.u}</span>}</span>
+                        )))}
+                      </div>}
+                  </div>}
+              </div>
+            );
+          })}
+        </div>
+        <div className="free"><textarea placeholder="Outra observação (opcional)…" value={free} onChange={e=>setFree(e.target.value)} /></div>
+      </>}
+
+      <div className="tec"><label>Técnico</label><input placeholder="seu nome" value={tec} onChange={e=>setTec(e.target.value)} /></div>
+      <div className="preview"><div className="ph">Prévia — é isto que vai pro grupo</div><pre>{report}</pre></div>
+
+      <div className="bar"><div className="bar-in">
+        <button className={"copy"+(ready?"":" empty")} onClick={copy}><Copy/>{ready?"Copiar relatório":(tec.trim()?"Defina o desfecho da sessão":"Preencha seu nome para copiar")}</button>
+      </div></div>
+      {toast&&<div className="toast"><Check/>{toast}</div>}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
