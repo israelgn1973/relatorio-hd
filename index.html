@@ -70,6 +70,7 @@
   .cancelom{width:100%;border:1.5px solid #c7bdd9;background:#fff;color:#5a4a7a;border-radius:13px;padding:13px;cursor:pointer;font-size:15px;font-weight:700;margin:10px 0 0;display:flex;align-items:center;justify-content:center;gap:8px}
   .cancelom.on{background:#6f5b97;color:#fff;border-color:#6f5b97}
   .cancelom svg{width:18px;height:18px}
+  .crwrap{margin:15px 2px 2px}
   .presc-note{font-size:12px;color:var(--ink2);margin:0 2px 8px;line-height:1.35}
   .ufline{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
   .ufbox{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:7px 11px}
@@ -159,6 +160,16 @@ function buildPresc(o){ var ac=o.ac||'—'; var ag=o.ag==='com'?('com heparina'+
 function readRx(){ const h=window.location.hash.replace(/^#/,''); if(h){const j=b64decode(h); if(j){try{ const o=JSON.parse(j); return { data:o.d||o.data||"", nome:o.n||o.nome||"", idade:o.i||o.idade||"", leito:o.l||o.leito||"", setor:o.s||o.setor||"", convenio:o.c||o.convenio||"", hospital:o.hospital||"Ruy Azeredo", tempo:o.t||o.tempo||"", uft:o.ut||o.uft||"", ufe:o.ue||o.ufe||"", presc:o.pr?buildPresc(o):(o.px||o.presc||"") }; }catch(e){}}} return null; }
 const DEMO={ data:"27/06/2026",nome:"Antônio Pereira de Souza",idade:"71 anos",leito:"03",setor:"UTI Amarela",
   convenio:"SUS",hospital:"Ruy Azeredo",tempo:"4 horas",inicio:"09:00",final:"13:00",uft:"2100",ufe:"1000",presc:"Acesso: CDL. Fluxo de sangue 200 ml/min, banho 300 ml/min. Anticoagulação sem heparina. Dialisato: sódio 142, temperatura 35 °C, bicarbonato 34. Fechamento do cateter: heparina diluída.",demo:true };
+const CANCEL_REASONS=[
+  {id:"instab",label:"Instabilidade",txt:"Sessão cancelada por ordem médica — instabilidade hemodinâmica."},
+  {id:"recusa",label:"Recusa da família",txt:"Sessão cancelada por ordem médica — recusa familiar."},
+  {id:"paliat",label:"Paliativado",txt:"Sessão cancelada por ordem médica — cuidados paliativos."},
+  {id:"acesso",label:"Sem acesso vascular",txt:"Sessão cancelada por ordem médica — ausência de acesso vascular."},
+  {id:"diurese",label:"Recuperação da diurese",txt:"Sessão cancelada por ordem médica — recuperação da diurese."},
+  {id:"exames",label:"Exames melhores",txt:"Sessão cancelada por ordem médica — melhora laboratorial."},
+  {id:"plant",label:"Suspensa pelo plantonista",txt:"Sessão suspensa pelo médico plantonista."},
+  {id:"naocom",label:"Não comunicado",txt:"Sessão cancelada por ordem médica."}
+];
 
 // achieved session time in discrete 30-min multiples (techs report this way)
 const ALLTIMES=[
@@ -290,6 +301,7 @@ function App(){
   const [showOutras,setShowOutras]=useState(false);
   const [tec,setTec]=useState("");
   const [cancelOM,setCancelOM]=useState(false);
+  const [cancelReason,setCancelReason]=useState("");
   const [presc,setPresc]=useState(()=>(readRx()||DEMO).presc||"");
   const [showDemo,setShowDemo]=useState(!!rx.demo);
   const [toast,setToast]=useState("");
@@ -337,7 +349,7 @@ function App(){
   }
 
   const narrative=useMemo(()=>{
-    if(cancelOM) return "Sessão cancelada por ordem médica.";
+    if(cancelOM){ const cr=CANCEL_REASONS.find(x=>x.id===cancelReason); return cr?cr.txt:"Sessão cancelada por ordem médica."; }
     const segs=[]; { const st=statusSentence(); if(st)segs.push(st); }
     if(cancelled){
       segs.push("Sessão cancelada.");
@@ -359,7 +371,7 @@ function App(){
     let out=segs.join(" ");
     if(clin.length && !reduced && !cancelled) out+=" Sem mais intercorrências.";
     return out.trim();
-  },[band,ufObtida,clean,active,cond,fields,free,status,rx]);
+  },[band,ufObtida,clean,active,cond,fields,free,status,rx,cancelOM,cancelReason]);
 
   const report=useMemo(()=>{
     const L=[];
@@ -384,7 +396,7 @@ function App(){
 
   const decided = cancelled || reduced || clean || anyInterc || free.trim();
   const statusComplete = STATUS.every(row => status[row.id]);
-  const ready = cancelOM || (decided && tec.trim() && statusComplete);
+  const ready = cancelOM ? !!cancelReason : (decided && tec.trim() && statusComplete);
   async function copy(){
     if(!ready)return;
     try{ await navigator.clipboard.writeText(report); }
@@ -429,7 +441,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.6</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.7</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
@@ -447,6 +459,15 @@ function App(){
       </div>
 
       <button type="button" className={"cancelom"+(cancelOM?" on":"")} onClick={()=>setCancelOM(v=>!v)}>Cancelada por ordem médica</button>
+
+      {cancelOM && <div className="crwrap">
+        <div className="sec-h">Motivo do cancelamento</div>
+        <div className="bands">
+          {CANCEL_REASONS.map(r=>(
+            <button type="button" key={r.id} className={"band om"+(cancelReason===r.id?" on":"")} onClick={()=>setCancelReason(r.id)}>{r.label}</button>
+          ))}
+        </div>
+      </div>}
 
       {!cancelOM && <>
       {/* SESSION prescrito -> obtido */}
