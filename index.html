@@ -67,6 +67,7 @@
   .band.bad{color:var(--red-d);border-color:var(--red-line)}
   .band.om{color:#5a4a7a;border-color:#c7bdd9}
   .band.om.on{background:#6f5b97;color:#fff;border-color:#6f5b97}
+  .accbands{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 7px}
   .cancelom{width:100%;border:1.5px solid #c7bdd9;background:#fff;color:#5a4a7a;border-radius:13px;padding:13px;cursor:pointer;font-size:15px;font-weight:700;margin:10px 0 0;display:flex;align-items:center;justify-content:center;gap:8px}
   .cancelom.on{background:#6f5b97;color:#fff;border-color:#6f5b97}
   .cancelom svg{width:18px;height:18px}
@@ -166,10 +167,11 @@ const CANCEL_REASONS=[
   {id:"paliat",label:"Paliativado",txt:"Sessão cancelada por ordem médica — cuidados paliativos."},
   {id:"acesso",label:"Sem acesso vascular",txt:"Sessão cancelada por ordem médica — ausência de acesso vascular."},
   {id:"diurese",label:"Recuperação da diurese",txt:"Sessão cancelada por ordem médica — recuperação da diurese."},
-  {id:"exames",label:"Exames melhores",txt:"Sessão cancelada por ordem médica — melhora laboratorial."},
+  {id:"exames",label:"Melhora clínica/laboratorial",txt:"Sessão cancelada por ordem médica — melhora clínica/laboratorial."},
   {id:"plant",label:"Suspensa pelo plantonista",txt:"Sessão suspensa pelo médico plantonista."},
-  {id:"naocom",label:"Não comunicado",txt:"Sessão cancelada por ordem médica."}
+  {id:"naocom",label:"Não informado",txt:"Sessão cancelada por ordem médica."}
 ];
+const CURATIVO_FAV="Realizado curativo compressivo, comunicada à técnica responsável a hora de retirada do curativo.";
 
 // achieved session time in discrete 30-min multiples (techs report this way)
 const ALLTIMES=[
@@ -303,6 +305,8 @@ function App(){
   const [cancelOM,setCancelOM]=useState(false);
   const [cancelReason,setCancelReason]=useState("");
   const [presc,setPresc]=useState(()=>(readRx()||DEMO).presc||"");
+  const [acc,setAcc]=useState(()=> /Fechamento do cateter:\s*FAV/i.test((readRx()||DEMO).presc||"") ? "fav" : "cdl");
+  const cdlAgente = /heparina diluída/i.test(presc) ? "heparina diluída" : "bicarbonato de sódio 8,4%";
   const [showDemo,setShowDemo]=useState(!!rx.demo);
   const [toast,setToast]=useState("");
 
@@ -389,10 +393,10 @@ function App(){
       if(rx.inicio)L.push(`Início: ${rx.inicio}`);
       const ff=finalObt(); if(ff)L.push(`Final: ${ff}`);
     }
-    L.push(`Evolução de Enfermagem: ${narrative||"—"}`);
+    { let evo = narrative||"—"; if(!cancelled){ evo += " "+(acc==="fav" ? CURATIVO_FAV : ("Cateter fechado com "+cdlAgente+".")); } L.push(`Evolução de Enfermagem: ${evo}`); }
     L.push(`Técnico: ${tec.trim()||""}`);
     return L.join("\n");
-  },[rx,band,ufObtida,motivos,narrative,tec,presc]);
+  },[rx,band,ufObtida,motivos,narrative,tec,presc,acc]);
 
   const decided = cancelled || reduced || clean || anyInterc || free.trim();
   const statusComplete = STATUS.every(row => status[row.id]);
@@ -441,7 +445,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.7</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.11</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
@@ -524,6 +528,12 @@ function App(){
       <div className="sec-h">Prescrição</div>
       <div className="presc-note">Já preenchida pela prescrição — editar só se houver desvio.</div>
       <div className="free"><textarea value={presc} onChange={e=>setPresc(e.target.value)} /></div>
+      <div className="sec-h">Acesso vascular hoje</div>
+      <div className="accbands">
+        <button type="button" className={"band ok"+(acc==="fav"?" on":"")} onClick={()=>setAcc("fav")}>FAV</button>
+        <button type="button" className={"band ok"+(acc==="cdl"?" on":"")} onClick={()=>setAcc("cdl")}>CDL</button>
+      </div>
+      <div className="presc-note">{acc==="fav" ? "FAV — não fechar cateter; curativo ao final." : ("Fechar cateter com "+cdlAgente+".")}</div>
       <div className="free"><textarea placeholder="Outra observação (opcional)…" value={free} onChange={e=>setFree(e.target.value)} /></div>
 
       <div className="tec"><label>Técnico</label><input placeholder="seu nome" value={tec} onChange={e=>setTec(e.target.value)} /></div>
