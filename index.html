@@ -387,30 +387,35 @@ function App(){
   },[band,ufObtida,clean,active,cond,fields,free,status,rx,cancelOM,cancelReason]);
 
   const report=useMemo(()=>{
-    const L=[];
-    L.push(`Goiânia, ${rx.data||""}`);
-    L.push(`Paciente: ${rx.nome||""}`);
-    if(rx.idade)L.push(`Idade: ${rx.idade}`);
-    if(rx.setor)L.push(`Uti: ${rx.setor}`);
-    L.push(`Convênio: ${rx.convenio||""}`);
-    L.push(`Hospital: ${rx.hospital||""}`);
+    const blocos=[];
+    blocos.push([`Goiânia, ${rx.data||""}`]);
+    const ident=[`Paciente: ${rx.nome||""}`];
+    if(rx.idade)ident.push(`Idade: ${rx.idade}`);
+    if(rx.setor)ident.push(`Uti: ${rx.setor}`);
+    ident.push(`Convênio: ${rx.convenio||""}`);
+    ident.push(`Hospital: ${rx.hospital||""}`);
+    blocos.push(ident);
     if(!cancelled && presc.trim()){
       const prescFav = /Fechamento do cateter:\s*FAV/i.test(presc);
       let ps = presc;
       if(acc==="cdl" && prescFav){ ps = presc.replace(/Acesso:\s*.*?\./,"Acesso: CDL.").replace(/Fechamento do cateter:\s*.*?\./,"Fechamento do cateter: "+cdlAgente+"."); }
       else if(acc==="fav" && !prescFav){ ps = presc.replace(/Acesso:\s*.*?\./,"Acesso: FAV.").replace(/Fechamento do cateter:\s*.*?\./,"Fechamento do cateter: FAV (não preencher)."); }
-      L.push(`Prescrição: ${ps.trim()}`);
+      blocos.push([`Prescrição: ${ps.trim()}`]);
     }
     if(!cancelled){
-      const tc=bandClock(); if(tc)L.push(`Tempo: ${tc}`);
-      if(ufTotalOut)L.push(`Uf total: ${ufTotalOut}`);
-      L.push(`Uf efetiva: ${ufObt||ufPresc}`);
-      if(inicio)L.push(`Início: ${inicio}`);
-      if(fim)L.push(`Final: ${fim}`);
+      const ufB=[];
+      const tc=bandClock(); if(tc)ufB.push(`Tempo: ${tc}`);
+      if(ufTotalOut)ufB.push(`Uf total: ${ufTotalOut}`);
+      ufB.push(`Uf efetiva: ${ufObt||ufPresc}`);
+      if(ufB.length)blocos.push(ufB);
+      const hor=[];
+      if(inicio)hor.push(`Início: ${inicio}`);
+      if(fim)hor.push(`Final: ${fim}`);
+      if(hor.length)blocos.push(hor);
     }
-    { let evo = narrative||"—"; if(!cancelled){ evo += " "+(acc==="fav" ? CURATIVO_FAV : ("Cateter fechado com "+cdlAgente+".")); } L.push(`Evolução de Enfermagem: ${evo}`); }
-    L.push(`Técnico: ${tec.trim()||""}`);
-    return L.join("\n");
+    { let evo = narrative||"—"; if(!cancelled){ evo += " "+(acc==="fav" ? CURATIVO_FAV : ("Cateter fechado com "+cdlAgente+".")); } blocos.push([`Evolução de Enfermagem: ${evo}`]); }
+    blocos.push([`Técnico: ${tec.trim()||""}`]);
+    return blocos.map(b=>b.join("\n")).join("\n\n");
   },[rx,band,ufObtida,motivos,narrative,tec,presc,acc,inicio,fim]);
 
   const decided = cancelled || reduced || clean || anyInterc || free.trim();
@@ -460,7 +465,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.13</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.14</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
