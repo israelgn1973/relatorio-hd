@@ -68,6 +68,10 @@
   .band.om{color:#5a4a7a;border-color:#c7bdd9}
   .band.om.on{background:#6f5b97;color:#fff;border-color:#6f5b97}
   .accbands{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 7px}
+  .hrow{display:flex;gap:8px}
+  .hbox{flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:10px;padding:7px 11px;background:#fff}
+  .hbox span{font-size:12px;color:var(--ink2);font-weight:800;white-space:nowrap}
+  .hbox input{border:none;background:transparent;font-size:15px;font-family:inherit;color:var(--ink);flex:1;min-width:0;padding:0}
   .cancelom{width:100%;border:1.5px solid #c7bdd9;background:#fff;color:#5a4a7a;border-radius:13px;padding:13px;cursor:pointer;font-size:15px;font-weight:700;margin:10px 0 0;display:flex;align-items:center;justify-content:center;gap:8px}
   .cancelom.on{background:#6f5b97;color:#fff;border-color:#6f5b97}
   .cancelom svg{width:18px;height:18px}
@@ -293,6 +297,9 @@ function App(){
   const COMPLETA=completaId(rx);
   const [band,setBand]=useState(()=>completaId(readRx()||DEMO));
   const [ufObtida,setUfObtida]=useState(()=> (rx.ufe||"").toString());
+  const [inicio,setInicio]=useState(()=>(readRx()||DEMO).inicio||"");
+  const [fim,setFim]=useState(()=>(readRx()||DEMO).final||"");
+  const [fimManual,setFimManual]=useState(false);
   const [motivos,setMotivos]=useState({});
   const [status,setStatus]=useState({});
   const [clean,setClean]=useState(false);
@@ -321,6 +328,8 @@ function App(){
   function prescClock(){ const m=prescMin(rx); return Math.floor(m/60)+":"+String(m%60).padStart(2,"0"); }
   function bandClock(){ if(cancelled)return ""; if(band===COMPLETA)return prescClock();
     const t=ALLTIMES.find(x=>x.id===band); return t?Math.floor(t.min/60)+":"+String(t.min%60).padStart(2,"0"):""; }
+  function bandMin(id){ if(id===COMPLETA)return prescMin(rx); const t=ALLTIMES.find(x=>x.id===id); return t?t.min:0; }
+  function addMin(hhmm,min){ const p=(hhmm||"").split(":").map(Number); if(p.length<2||isNaN(p[0])||isNaN(p[1]))return ""; let tot=(p[0]*60+p[1]+min)%1440; if(tot<0)tot+=1440; return String(Math.floor(tot/60)).padStart(2,"0")+":"+String(tot%60).padStart(2,"0"); }
   const uftPrescN=parseInt((rx.uft||"").toString().replace(/\D/g,""))||0;
   const ufePrescN=parseInt(ufPresc.replace(/\D/g,""))||0;
   const ufObtN=parseInt(ufObt.replace(/\D/g,""));
@@ -396,13 +405,13 @@ function App(){
       const tc=bandClock(); if(tc)L.push(`Tempo: ${tc}`);
       if(ufTotalOut)L.push(`Uf total: ${ufTotalOut}`);
       L.push(`Uf efetiva: ${ufObt||ufPresc}`);
-      if(rx.inicio)L.push(`Início: ${rx.inicio}`);
-      const ff=finalObt(); if(ff)L.push(`Final: ${ff}`);
+      if(inicio)L.push(`Início: ${inicio}`);
+      if(fim)L.push(`Final: ${fim}`);
     }
     { let evo = narrative||"—"; if(!cancelled){ evo += " "+(acc==="fav" ? CURATIVO_FAV : ("Cateter fechado com "+cdlAgente+".")); } L.push(`Evolução de Enfermagem: ${evo}`); }
     L.push(`Técnico: ${tec.trim()||""}`);
     return L.join("\n");
-  },[rx,band,ufObtida,motivos,narrative,tec,presc,acc]);
+  },[rx,band,ufObtida,motivos,narrative,tec,presc,acc,inicio,fim]);
 
   const decided = cancelled || reduced || clean || anyInterc || free.trim();
   const statusComplete = STATUS.every(row => status[row.id]);
@@ -451,7 +460,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.12</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.13</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
@@ -498,10 +507,17 @@ function App(){
       <div className="sec-h">Sessão · prescrito → obtido</div>
       <div className="session">
         <div className="srow">
+          <div className="srow-h">Horário da sessão</div>
+          <div className="hrow">
+            <label className="hbox"><span>Início</span><input type="time" value={inicio} onChange={e=>{const v=e.target.value; setInicio(v); if(!fimManual){const f=addMin(v,bandMin(band)); setFim(f);}}} /></label>
+            <label className="hbox"><span>Término</span><input type="time" value={fim} onChange={e=>{setFim(e.target.value); setFimManual(true);}} /></label>
+          </div>
+        </div>
+        <div className="srow">
           <div className="srow-h">Tempo de sessão <span className="ptag">prescrito: {rx.tempo}</span></div>
           <div className="bands">
             {visibleTimes(rx).map(t=>(
-              <button key={t.id} className={`band ${t.id===COMPLETA?"ok":"warn"}`+(band===t.id?" on":"")} onClick={()=>setBand(t.id)}>{t.label}{t.id===COMPLETA?" ✓":""}</button>
+              <button key={t.id} className={`band ${t.id===COMPLETA?"ok":"warn"}`+(band===t.id?" on":"")} onClick={()=>{setBand(t.id); setFimManual(false); const f=addMin(inicio,bandMin(t.id)); if(f)setFim(f);}}>{t.label}{t.id===COMPLETA?" ✓":""}</button>
             ))}
           </div>
         </div>
