@@ -296,9 +296,8 @@ function App(){
   const [rx]=useState(()=>readRx()||DEMO);
   const COMPLETA=completaId(rx);
   const [band,setBand]=useState(()=>completaId(readRx()||DEMO));
-  const [ufObtida,setUfObtida]=useState(()=> (rx.ufe||"").toString());
   const [ufTot,setUfTot]=useState(()=> (rx.uft||"").toString());
-  const [soroDev,setSoroDev]=useState(()=>{ const _t=parseInt((rx.uft||"").toString().replace(/\D/g,""))||0; const _e=parseInt((rx.ufe||"").toString().replace(/\D/g,""))||0; const _p=(_t&&_e)?(_t-_e):0; return _p>0?String(_p):""; });
+  const [reposicoes,setReposicoes]=useState("");
   const [inicio,setInicio]=useState(()=>(readRx()||DEMO).inicio||"");
   const [fim,setFim]=useState(()=>(readRx()||DEMO).final||"");
   const [fimManual,setFimManual]=useState(false);
@@ -323,6 +322,10 @@ function App(){
   const reduced = band!==COMPLETA && band!=="cancel";
   const motivoNeeded = !cancelOM && (reduced || band==="cancel");
   const anyInterc = Object.values(active).some(Boolean);
+  const PRIMING=400;
+  const lavagensCount=Math.max(0,Math.floor((bandMin(band)-1)/30));
+  const lavagensMl=lavagensCount*100;
+  const ufObtida=(()=>{ const _t=parseInt((ufTot||"").replace(/\D/g,"")); if(isNaN(_t)) return ""; const _r=parseInt((reposicoes||"").replace(/\D/g,""))||0; return String(Math.max(0,_t-PRIMING-lavagensMl-_r)); })();
   const ufPresc=(rx.ufe||"").toString().trim();
   const ufObt=(ufObtida||"").toString().trim();
   const ufDiffers = ufObt && ufObt!==ufPresc;
@@ -467,7 +470,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.15</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.16</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
@@ -533,28 +536,38 @@ function App(){
             <div className="srow-h">UF da sessão</div>
             <div style={{background:"#eef6f0",border:"1px solid #cfe3d6",borderRadius:10,padding:"10px 12px",fontSize:13,lineHeight:1.55,marginBottom:10,color:"#22372f"}}>
               💧 <b>UF efetiva</b> = o que o paciente <b>perdeu de verdade</b>.<br/>
-              <b>UF total</b> = o que a <b>máquina tirou</b> = UF efetiva + priming + lavagens.<br/>
-              <span style={{opacity:.65}}>priming + lavagens = o soro que volta pro paciente</span>
+              <b>UF total</b> = o que a máquina tirou = efetiva + priming + lavagens + reposições.
             </div>
-            <div className="srow-h" style={{marginTop:0}}>UF total <span className="ptag">o que a máquina retirou (mostrador)</span></div>
+            <div className="srow-h" style={{marginTop:0}}>UF total <span className="ptag">mostrador da máquina</span></div>
             <div className="ufline" style={{marginBottom:10}}>
               <div className="ufbox">
-                <input inputMode="decimal" value={ufTot} onChange={e=>{const v=e.target.value; setUfTot(v); const t=parseInt((v||"").replace(/\D/g,"")); const dv=parseInt((soroDev||"").replace(/\D/g,""))||0; setUfObtida(isNaN(t)?"":String(Math.max(0,t-dv)));}} />
+                <input inputMode="decimal" value={ufTot} onChange={e=>setUfTot(e.target.value)} />
                 <span className="u">ml</span>
               </div>
             </div>
-            <div className="srow-h" style={{marginTop:0}}>Soro devolvido <span className="ptag">priming + lavagens que voltaram</span></div>
+            <div style={{display:"flex",gap:8,marginBottom:10}}>
+              <div style={{flex:1,background:"#f4f6f5",border:"1px solid #dde5e0",borderRadius:10,padding:"8px 10px"}}>
+                <div style={{fontSize:12,opacity:.7}}>Priming <span style={{fontSize:10,opacity:.55}}>fixo</span></div>
+                <div style={{fontSize:16,fontWeight:600}}>400 ml</div>
+              </div>
+              <div style={{flex:1,background:"#f4f6f5",border:"1px solid #dde5e0",borderRadius:10,padding:"8px 10px"}}>
+                <div style={{fontSize:12,opacity:.7}}>Lavagens <span style={{fontSize:10,opacity:.55}}>automático</span></div>
+                <div style={{fontSize:16,fontWeight:600}}>{lavagensMl} ml</div>
+                <div style={{fontSize:11,opacity:.6}}>{lavagensCount}× de 100 ml · {bandClock()||"—"}</div>
+              </div>
+            </div>
+            <div className="srow-h" style={{marginTop:0}}>Reposições <span className="ptag">soro extra dado ao paciente (bolus etc.)</span></div>
             <div className="ufline">
               <div className="ufbox">
-                <input inputMode="decimal" value={soroDev} onChange={e=>{const v=e.target.value; setSoroDev(v); const t=parseInt((ufTot||"").replace(/\D/g,"")); const dv=parseInt((v||"").replace(/\D/g,""))||0; setUfObtida(isNaN(t)?"":String(Math.max(0,t-dv)));}} />
+                <input inputMode="decimal" value={reposicoes} onChange={e=>setReposicoes(e.target.value)} />
                 <span className="u">ml</span>
               </div>
             </div>
-            <div style={{fontSize:12,opacity:.6,margin:"3px 0 10px"}}>já vem com o priming; ajuste se houve lavagens</div>
-            {(()=>{ const t=parseInt((ufTot||"").replace(/\D/g,"")); const dv=parseInt((soroDev||"").replace(/\D/g,""))||0; const erro=!isNaN(t)&&dv>t; const ef=isNaN(t)?null:Math.max(0,t-dv); return (
+            <div style={{fontSize:12,opacity:.6,margin:"3px 0 10px"}}>deixe vazio se não houve</div>
+            {(()=>{ const t=parseInt((ufTot||"").replace(/\D/g,"")); const r=parseInt((reposicoes||"").replace(/\D/g,""))||0; const desc=PRIMING+lavagensMl+r; const erro=!isNaN(t)&&desc>t; const ef=isNaN(t)?null:Math.max(0,t-desc); return (
               erro
-              ? <div style={{background:"#fdecec",border:"1px solid #f0b2b2",borderRadius:10,padding:"10px 12px",fontSize:13,color:"#9a2222"}}>⚠️ O soro devolvido ({dv}) não pode ser maior que a UF total ({t}). Confira: o total é o que a máquina tirou; o devolvido é o que voltou pro paciente.</div>
-              : <div style={{background:"#e9f4ee",border:"1px solid #bfe0cd",borderRadius:10,padding:"11px 12px",fontSize:16,fontWeight:700,color:"#0E6E68"}}>UF efetiva = {ef==null?"—":ef+" ml"}<div style={{fontWeight:400,fontSize:12,opacity:.7,marginTop:2,color:"#22372f"}}>o que o paciente perdeu — total menos o devolvido{ufPresc?` · prescrita: ${ufPresc} ml`:""}</div></div>
+              ? <div style={{background:"#fdecec",border:"1px solid #f0b2b2",borderRadius:10,padding:"10px 12px",fontSize:13,color:"#9a2222"}}>⚠️ Priming + lavagens + reposições ({desc} ml) passou da UF total ({t} ml). Confira a UF total no mostrador.</div>
+              : <div style={{background:"#e9f4ee",border:"1px solid #bfe0cd",borderRadius:10,padding:"11px 12px",fontSize:16,fontWeight:700,color:"#0E6E68"}}>UF efetiva = {ef==null?"—":ef+" ml"}<div style={{fontWeight:400,fontSize:12,opacity:.7,marginTop:2,color:"#22372f"}}>total − priming − lavagens − reposições{ufPresc?` · prescrita: ${ufPresc} ml`:""}</div></div>
             ); })()}
           </div>}
       </div>
