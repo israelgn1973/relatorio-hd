@@ -10,6 +10,41 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script type="module">
+/* Envio silencioso do relatório ao NefroApp (Firebase). Se falhar (offline, regra,
+   qualquer coisa), NADA acontece — o copiar/WhatsApp segue normal. */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyC-p2P1j0F004pkzV7AWotLwvtASRuBYTM",
+  authDomain: "nefro-andamento.firebaseapp.com",
+  projectId: "nefro-andamento",
+  storageBucket: "nefro-andamento.firebasestorage.app",
+  messagingSenderId: "297728736481",
+  appId: "1:297728736481:web:7503751466d374aae1cba0"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+let _ultimo = '';
+window.__relzap = {
+  enviar(d){
+    (async () => {
+      try {
+        const k = String(d && d.texto || '').replace(/\s+/g, ' ').trim();
+        if (!k || k === _ultimo) return;
+        if (!auth.currentUser) await signInAnonymously(auth);
+        await addDoc(collection(db, 'relatorios'), {
+          nome: String(d.nome || ''), leito: String(d.leito || ''), setor: String(d.setor || ''),
+          dataRx: String(d.dataRx || ''), texto: String(d.texto || ''), criadoEm: serverTimestamp()
+        });
+        _ultimo = k;
+      } catch (e) {}
+    })();
+  }
+};
+</script>
 <style>
   :root{
     --bg:#DBE8DD;--ink:#16282C;--ink2:#54675E;--line:#CBD9CE;
@@ -440,6 +475,7 @@ function App(){
     if(!ready)return;
     try{ await navigator.clipboard.writeText(report); }
     catch(e){ const ta=document.createElement("textarea");ta.value=report;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(_){}document.body.removeChild(ta); }
+    try{ if(window.__relzap) window.__relzap.enviar({ nome:(rx&&rx.nome)||"", leito:(rx&&rx.leito)||"", setor:(rx&&rx.setor)||"", dataRx:(rx&&rx.data)||"", texto:report }); }catch(_e){}
     setToast("Relatório copiado");setTimeout(()=>setToast(""),1700);
   }
 
@@ -480,7 +516,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.17</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.18</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
