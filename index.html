@@ -410,8 +410,18 @@ function App(){
     if(!cancelled){
       const ufB=[];
       const tc=bandClock(); if(tc)ufB.push(`Tempo: ${tc}`);
-      if(ufTotalOut)ufB.push(`Uf total: ${ufTotalOut}`);
-      ufB.push(`Uf efetiva: ${ufObt||ufPresc}`);
+      const _tN=parseInt((ufTot||"").replace(/\D/g,""));
+      const _rN=parseInt((reposicoes||"").replace(/\D/g,""))||0;
+      if(!isNaN(_tN)){
+        ufB.push(`Uf total: ${ufTotalOut}`);
+        ufB.push(` - Priming: ${PRIMING}`);
+        if(lavagensMl>0)ufB.push(` - Lavagens: ${lavagensMl} (${lavagensCount}×)`);
+        if(_rN>0)ufB.push(` - Reposições: ${_rN}`);
+        ufB.push(`Uf efetiva: ${ufObt||ufPresc}`);
+      }else{
+        if(ufTotalOut)ufB.push(`Uf total: ${ufTotalOut}`);
+        ufB.push(`Uf efetiva: ${ufObt||ufPresc}`);
+      }
       if(ufB.length)blocos.push(ufB);
       const hor=[];
       if(inicio)hor.push(`Início: ${inicio}`);
@@ -470,7 +480,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.16</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.17</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
