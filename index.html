@@ -96,6 +96,8 @@ window.__relzap = {
   .lockpill{position:absolute;top:-10px;left:14px;background:var(--lock-ink);color:#fff;font-size:10.5px;font-weight:700;
     letter-spacing:.3px;padding:3px 9px 3px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;text-transform:uppercase}
   .lockpill svg{width:11px;height:11px}
+  .urgpill{position:absolute;top:-10px;right:14px;background:var(--red);color:#fff;font-size:10.5px;font-weight:800;
+    letter-spacing:.3px;padding:3px 9px;border-radius:20px;text-transform:uppercase}
   .pname{font-size:24px;font-weight:800;letter-spacing:-.2px;line-height:1.12;margin:6px 0 3px}
   .pmeta{font-size:13.5px;color:var(--lock-ink);font-weight:600}
   .pmeta .dot{opacity:.45;margin:0 6px}
@@ -220,7 +222,7 @@ const Copy=()=> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 
 function b64decode(s){ try{ return decodeURIComponent(escape(window.atob(s))); }catch(e){ return null; } }
 function buildPresc(o){ var ac=o.ac||'—'; var ag=o.ag==='com'?('com heparina'+((o.hb||o.ht)?' (bolus '+(o.hb||'—')+' ml, '+(o.ht||'—')+' ml/h)':'')):(o.ag==='sem'?'sem heparina':'—'); var cat=o.ct==='hep'?'heparina diluída':(o.ct==='fav'?'FAV (não preencher)':'bicarbonato de sódio 8,4%'); return 'Acesso: '+ac+'. Fluxo de sangue '+(o.fs||'200')+' ml/min, banho '+(o.fb||'300')+' ml/min. Anticoagulação '+ag+'. Dialisato: sódio '+(o.dn||'142')+', temperatura '+(o.dt||'35')+' °C, bicarbonato '+(o.db||'34')+'. Fechamento do cateter: '+cat+'.'; }
-function readRx(){ const h=window.location.hash.replace(/^#/,''); if(h){const j=b64decode(h); if(j){try{ const o=JSON.parse(j); if(o.k){window.__relk=String(o.k);} return { data:o.d||o.data||"", nome:o.n||o.nome||"", idade:o.i||o.idade||"", leito:o.l||o.leito||"", setor:o.s||o.setor||"", convenio:o.c||o.convenio||"", hospital:o.hospital||"Ruy Azeredo", tempo:o.t||o.tempo||"", uft:o.ut||o.uft||"", ufe:o.ue||o.ufe||"", presc:o.pr?buildPresc(o):(o.px||o.presc||"") }; }catch(e){}}} return null; }
+function readRx(){ const h=window.location.hash.replace(/^#/,''); if(h){const j=b64decode(h); if(j){try{ const o=JSON.parse(j); if(o.k){window.__relk=String(o.k);} return { data:o.d||o.data||"", nome:o.n||o.nome||"", idade:o.i||o.idade||"", leito:o.l||o.leito||"", setor:o.s||o.setor||"", convenio:o.c||o.convenio||"", hospital:o.hospital||"Ruy Azeredo", tempo:o.t||o.tempo||"", uft:o.ut||o.uft||"", ufe:o.ue||o.ufe||"", presc:o.pr?buildPresc(o):(o.px||o.presc||""), urgente:!!o.u }; }catch(e){}}} return null; }
 const DEMO={ data:"27/06/2026",nome:"Antônio Pereira de Souza",idade:"71 anos",leito:"03",setor:"UTI Amarela",
   convenio:"SUS",hospital:"Ruy Azeredo",tempo:"4 horas",inicio:"09:00",final:"13:00",uft:"2100",ufe:"1000",presc:"Acesso: CDL. Fluxo de sangue 200 ml/min, banho 300 ml/min. Anticoagulação sem heparina. Dialisato: sódio 142, temperatura 35 °C, bicarbonato 34. Fechamento do cateter: heparina diluída.",demo:true };
 const CANCEL_REASONS=[
@@ -381,7 +383,8 @@ function App(){
   const motivoNeeded = !cancelOM && (reduced || band==="cancel");
   const anyInterc = Object.values(active).some(Boolean);
   const PRIMING=400;
-  const lavagensCount=Math.max(0,Math.floor((bandMin(band)-1)/30));
+  const comHeparina=/anticoagula[çc][aã]o\s+com\s+heparina/i.test(presc);
+  const lavagensCount=comHeparina?0:Math.max(0,Math.floor((bandMin(band)-1)/30));
   const lavagensMl=lavagensCount*100;
   const ufObtida=(()=>{ const _t=parseInt((ufTot||"").replace(/\D/g,"")); if(isNaN(_t)) return ""; const _r=parseInt((reposicoes||"").replace(/\D/g,""))||0; return String(Math.max(0,_t-PRIMING-lavagensMl-_r)); })();
   const ufPresc=(rx.ufe||"").toString().trim();
@@ -455,6 +458,7 @@ function App(){
     const ident=[`Paciente: ${rx.nome||""}`];
     if(rx.idade)ident.push(`Idade: ${rx.idade}`);
     if(rx.setor)ident.push(`Uti: ${rx.setor}`);
+    if(rx.leito)ident.push(`Leito: ${rx.leito}`);
     ident.push(`Convênio: ${rx.convenio||""}`);
     ident.push(`Hospital: ${rx.hospital||""}`);
     blocos.push(ident);
@@ -539,11 +543,12 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.21</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.22</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
         <span className="lockpill"><Lock/> definido na prescrição</span>
+        {rx.urgente && <span className="urgpill">⚠ Urgente</span>}
         <div className="pname">{rx.nome}</div>
         <div className="pmeta">{rx.leito?<span>Leito {rx.leito}{rx.setor?' · ':''}</span>:null}{rx.setor?<span>{/^UTI/i.test(rx.setor)?rx.setor:'UTI '+rx.setor}</span>:null}<span className="dot">•</span>{rx.convenio}<span className="dot">•</span>{rx.hospital}{rx.idade?<span><span className="dot">•</span>{/ano/i.test(rx.idade)?rx.idade:rx.idade+' anos'}</span>:null}</div>
         <div className="pdate">Goiânia, {rx.data}</div>
