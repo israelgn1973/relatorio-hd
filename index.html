@@ -28,16 +28,31 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 let _ultimo = '';
+/* E2E: o link do paciente traz a chave (campo k do payload — readRx põe em window.__relk).
+   Com chave: nome/leito/texto sobem cifrados (AES-GCM). Sem chave (link antigo): NÃO envia
+   ao Firebase — o copiar/WhatsApp segue normal, zero impacto pro técnico. */
+const _b64uEnc = (buf)=>{ const u=new Uint8Array(buf); let s=''; for(let i=0;i<u.length;i+=8192) s+=String.fromCharCode.apply(null,u.subarray(i,i+8192)); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
+const _b64uDec = (s)=>{ s=String(s).replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; const b=atob(s); const u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; };
+async function e2eCifrar(txt,key){
+  const s=String(txt==null?'':txt); if(!s||!key) return s;
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(s));
+  const u=new Uint8Array(12+ct.byteLength); u.set(iv); u.set(new Uint8Array(ct),12);
+  return 'e1:'+_b64uEnc(u.buffer);
+}
 window.__relzap = {
   enviar(d){
     (async () => {
       try {
         const k = String(d && d.texto || '').replace(/\s+/g, ' ').trim();
         if (!k || k === _ultimo) return;
+        const kb = String(window.__relk || '');
+        if (!/^[A-Za-z0-9_-]{40,50}$/.test(kb)) return; // link sem chave: não sobe nada
+        const key = await crypto.subtle.importKey('raw', _b64uDec(kb), 'AES-GCM', false, ['encrypt','decrypt']);
         if (!auth.currentUser) await signInAnonymously(auth);
         await addDoc(collection(db, 'relatorios'), {
-          nome: String(d.nome || ''), leito: String(d.leito || ''), setor: String(d.setor || ''),
-          dataRx: String(d.dataRx || ''), texto: String(d.texto || ''), criadoEm: serverTimestamp()
+          nome: await e2eCifrar(String(d.nome || ''), key), leito: await e2eCifrar(String(d.leito || ''), key), setor: String(d.setor || ''),
+          dataRx: String(d.dataRx || ''), texto: await e2eCifrar(String(d.texto || ''), key), criadoEm: serverTimestamp()
         });
         _ultimo = k;
       } catch (e) {}
@@ -197,7 +212,7 @@ const Copy=()=> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 
 function b64decode(s){ try{ return decodeURIComponent(escape(window.atob(s))); }catch(e){ return null; } }
 function buildPresc(o){ var ac=o.ac||'—'; var ag=o.ag==='com'?('com heparina'+((o.hb||o.ht)?' (bolus '+(o.hb||'—')+' ml, '+(o.ht||'—')+' ml/h)':'')):(o.ag==='sem'?'sem heparina':'—'); var cat=o.ct==='hep'?'heparina diluída':(o.ct==='fav'?'FAV (não preencher)':'bicarbonato de sódio 8,4%'); return 'Acesso: '+ac+'. Fluxo de sangue '+(o.fs||'200')+' ml/min, banho '+(o.fb||'300')+' ml/min. Anticoagulação '+ag+'. Dialisato: sódio '+(o.dn||'142')+', temperatura '+(o.dt||'35')+' °C, bicarbonato '+(o.db||'34')+'. Fechamento do cateter: '+cat+'.'; }
-function readRx(){ const h=window.location.hash.replace(/^#/,''); if(h){const j=b64decode(h); if(j){try{ const o=JSON.parse(j); return { data:o.d||o.data||"", nome:o.n||o.nome||"", idade:o.i||o.idade||"", leito:o.l||o.leito||"", setor:o.s||o.setor||"", convenio:o.c||o.convenio||"", hospital:o.hospital||"Ruy Azeredo", tempo:o.t||o.tempo||"", uft:o.ut||o.uft||"", ufe:o.ue||o.ufe||"", presc:o.pr?buildPresc(o):(o.px||o.presc||"") }; }catch(e){}}} return null; }
+function readRx(){ const h=window.location.hash.replace(/^#/,''); if(h){const j=b64decode(h); if(j){try{ const o=JSON.parse(j); if(o.k){window.__relk=String(o.k);} return { data:o.d||o.data||"", nome:o.n||o.nome||"", idade:o.i||o.idade||"", leito:o.l||o.leito||"", setor:o.s||o.setor||"", convenio:o.c||o.convenio||"", hospital:o.hospital||"Ruy Azeredo", tempo:o.t||o.tempo||"", uft:o.ut||o.uft||"", ufe:o.ue||o.ufe||"", presc:o.pr?buildPresc(o):(o.px||o.presc||"") }; }catch(e){}}} return null; }
 const DEMO={ data:"27/06/2026",nome:"Antônio Pereira de Souza",idade:"71 anos",leito:"03",setor:"UTI Amarela",
   convenio:"SUS",hospital:"Ruy Azeredo",tempo:"4 horas",inicio:"09:00",final:"13:00",uft:"2100",ufe:"1000",presc:"Acesso: CDL. Fluxo de sangue 200 ml/min, banho 300 ml/min. Anticoagulação sem heparina. Dialisato: sódio 142, temperatura 35 °C, bicarbonato 34. Fechamento do cateter: heparina diluída.",demo:true };
 const CANCEL_REASONS=[
@@ -516,7 +531,7 @@ function App(){
 
   return (
     <div className="wrap">
-      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.18</span></div>
+      <div className="eyebrow"><h1>Relatório de hemodiálise</h1><span className="ver">v1.19</span></div>
       {showDemo && <div className="demo"><span>👁️ <b>Modo demonstração.</b> Normalmente abre pelo link da prescrição, já no paciente certo.</span><button onClick={()=>setShowDemo(false)} aria-label="fechar">×</button></div>}
 
       <div className="card">
